@@ -245,6 +245,13 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
         $(selectorToUse).each((i, item) => {
           const $item = $(item);
 
+          // Debug: Log the HTML of the first item to see the structure
+          if (i === 0 && currentPage === 1) {
+            console.log('\n=== DEBUG: First work item HTML structure ===');
+            console.log($item.html().substring(0, 1500));
+            console.log('=== END DEBUG ===\n');
+          }
+
           // Find the title link - it's the first anchor in h4.heading that links to /works/
           const titleElement = $item.find('h4.heading a[href*="/works/"]').first();
 
@@ -292,14 +299,48 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
 
             // Extract last visited date
             let lastVisited = null;
-            const dateElement = $item.find('h4.heading span.datetime');
-            if (dateElement.length > 0) {
-              const dateText = dateElement.text().trim();
-              const dateMatch = dateText.match(/\((\d{1,2}\s+\w+\s+\d{4})\)/);
-              if (dateMatch) {
-                lastVisited = new Date(dateMatch[1]);
-                console.log(`Parsed date for "${title}": ${lastVisited.toISOString()} (Year: ${lastVisited.getFullYear()})`);
+
+            // Try multiple possible selectors for the date
+            const possibleDateSelectors = [
+              'h4.heading span.datetime',
+              'h4.heading .datetime',
+              'h4 span.datetime',
+              '.datetime',
+              'h4.heading'
+            ];
+
+            let dateText = null;
+            for (const selector of possibleDateSelectors) {
+              const dateElement = $item.find(selector);
+              if (dateElement.length > 0) {
+                dateText = dateElement.text().trim();
+                console.log(`Found date element with selector "${selector}": "${dateText}"`);
+                break;
               }
+            }
+
+            if (dateText) {
+              // Try multiple date pattern matches
+              const patterns = [
+                /\((\d{1,2}\s+\w+\s+\d{4})\)/,  // (14 Jan 2024)
+                /(\d{1,2}\s+\w+\s+\d{4})/,      // 14 Jan 2024
+                /Last visited:\s*(\d{1,2}\s+\w+\s+\d{4})/i,  // Last visited: 14 Jan 2024
+              ];
+
+              for (const pattern of patterns) {
+                const dateMatch = dateText.match(pattern);
+                if (dateMatch) {
+                  lastVisited = new Date(dateMatch[1]);
+                  console.log(`✓ Parsed date for "${title}": ${lastVisited.toISOString()} (Year: ${lastVisited.getFullYear()})`);
+                  break;
+                }
+              }
+
+              if (!lastVisited) {
+                console.log(`✗ Could not parse date from text: "${dateText}" for "${title}"`);
+              }
+            } else {
+              console.log(`✗ No date element found for "${title}"`);
             }
 
             if (title && link) {
