@@ -12,6 +12,48 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Test AO3 connectivity
+app.get('/api/test-connection', async (req, res) => {
+  const axios = require('axios');
+  const https = require('https');
+
+  console.log('Testing connection to AO3...');
+
+  try {
+    const httpsAgent = new https.Agent({
+      keepAlive: true,
+      timeout: 30000,
+      rejectUnauthorized: true
+    });
+
+    const response = await axios.get('https://archiveofourown.org/', {
+      timeout: 30000,
+      httpsAgent: httpsAgent,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+
+    console.log('Connection test successful. Status:', response.status);
+
+    res.json({
+      success: true,
+      status: response.status,
+      message: 'Successfully connected to AO3'
+    });
+  } catch (error) {
+    console.error('Connection test failed:', error.message);
+    console.error('Error code:', error.code);
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: error.code,
+      message: 'Failed to connect to AO3'
+    });
+  }
+});
+
 app.post('/api/scrape', async (req, res) => {
   const { username, password } = req.body;
 

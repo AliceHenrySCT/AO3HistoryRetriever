@@ -48,7 +48,21 @@ async function scrapeAO3History(username, password, retries = 3) {
 
       // Get login page to extract authenticity token
       console.log('Fetching login page...');
-      const loginPageResponse = await client.get('https://archiveofourown.org/users/login');
+      console.log('Making request to: https://archiveofourown.org/users/login');
+
+      let loginPageResponse;
+      try {
+        loginPageResponse = await client.get('https://archiveofourown.org/users/login');
+        console.log('Login page response status:', loginPageResponse.status);
+        console.log('Login page response headers:', JSON.stringify(loginPageResponse.headers, null, 2));
+      } catch (fetchError) {
+        console.error('Failed to fetch login page:');
+        console.error('Error code:', fetchError.code);
+        console.error('Error message:', fetchError.message);
+        console.error('Error stack:', fetchError.stack);
+        throw fetchError;
+      }
+
       const loginPage = cheerio.load(loginPageResponse.data);
       const token = loginPage('input[name="authenticity_token"]').val();
       console.log('Login page fetched successfully');
@@ -88,12 +102,35 @@ async function scrapeAO3History(username, password, retries = 3) {
       );
 
       console.log('Login response received');
+      console.log('Response status:', loginResponse.status);
 
       // Check if login was successful by looking for error messages
       const loginCheck = cheerio.load(loginResponse.data);
       const errorMessage = loginCheck('.error').text();
       if (errorMessage && (errorMessage.includes('password') || errorMessage.includes('couldn\'t find'))) {
         throw new Error('Invalid username or password');
+      }
+
+      // Verify we're logged in by checking for user-specific elements
+      const userNav = loginCheck('#greeting');
+      const isLoggedIn = userNav.length > 0;
+
+      console.log('Login verification - user nav found:', isLoggedIn);
+      console.log('User greeting text:', userNav.text().trim());
+
+      if (!isLoggedIn) {
+        console.log('Login may have failed - no user navigation found');
+        console.log('Page title:', loginCheck('title').text());
+
+        // Try to find any error messages
+        const allErrors = loginCheck('.error, .alert, .notice').map((i, el) => loginCheck(el).text().trim()).get();
+        if (allErrors.length > 0) {
+          console.log('Found error messages:', allErrors);
+          throw new Error(`Login failed: ${allErrors.join(', ')}`);
+        }
+
+        // If no errors but also not logged in, something went wrong
+        console.log('No error messages found but login verification failed');
       }
 
       console.log('Login successful');

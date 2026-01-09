@@ -189,6 +189,10 @@
     <div class="container">
         <h1>AO3 History Scraper</h1>
 
+        <button type="button" id="testConnection" style="margin-bottom: 20px; background: #28a745;">Test AO3 Connection</button>
+
+        <div id="connectionStatus" style="padding: 12px; margin-bottom: 20px; border-radius: 6px; display: none;"></div>
+
         <form id="scraperForm">
             <div class="form-group">
                 <label for="username">Username</label>
@@ -224,6 +228,42 @@
         const historyList = document.getElementById('historyList');
         const count = document.getElementById('count');
         const submitBtn = document.getElementById('submitBtn');
+        const testConnectionBtn = document.getElementById('testConnection');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        testConnectionBtn.addEventListener('click', async () => {
+            testConnectionBtn.disabled = true;
+            testConnectionBtn.textContent = 'Testing...';
+            connectionStatus.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/test-connection');
+                const data = await response.json();
+
+                if (data.success) {
+                    connectionStatus.style.background = '#d4edda';
+                    connectionStatus.style.color = '#155724';
+                    connectionStatus.style.border = '1px solid #c3e6cb';
+                    connectionStatus.textContent = '✓ Successfully connected to AO3';
+                } else {
+                    connectionStatus.style.background = '#f8d7da';
+                    connectionStatus.style.color = '#721c24';
+                    connectionStatus.style.border = '1px solid #f5c6cb';
+                    connectionStatus.textContent = `✗ Connection failed: ${data.error || 'Unknown error'}`;
+                }
+
+                connectionStatus.style.display = 'block';
+            } catch (err) {
+                connectionStatus.style.background = '#f8d7da';
+                connectionStatus.style.color = '#721c24';
+                connectionStatus.style.border = '1px solid #f5c6cb';
+                connectionStatus.textContent = `✗ Connection failed: ${err.message}`;
+                connectionStatus.style.display = 'block';
+            } finally {
+                testConnectionBtn.disabled = false;
+                testConnectionBtn.textContent = 'Test AO3 Connection';
+            }
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
