@@ -1,51 +1,39 @@
 const express = require('express');
-const { spawn } = require('child_process');
-const path = require('path');
+const { scrapeAO3History } = require('./ao3_scraper');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
 
-app.post('/api/scrape', (req, res) => {
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.post('/api/scrape', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
 
-  const pythonProcess = spawn('python3', [
-    'ao3_scraper.py',
-    username,
-    password
-  ]);
+  console.log(`Starting scrape for user: ${username}`);
 
-  let output = '';
-  let errorOutput = '';
-
-  pythonProcess.stdout.on('data', (data) => {
-    output += data.toString();
-  });
-
-  pythonProcess.stderr.on('data', (data) => {
-    errorOutput += data.toString();
-  });
-
-  pythonProcess.on('close', (code) => {
-    if (code !== 0) {
-      return res.status(500).json({ error: errorOutput || 'Failed to scrape history' });
-    }
-
-    try {
-      const data = JSON.parse(output);
-      res.json(data);
-    } catch (e) {
-      res.status(500).json({ error: 'Failed to parse scraper output' });
-    }
-  });
+  try {
+    const historyItems = await scrapeAO3History(username, password);
+    console.log(`Successfully scraped ${historyItems.length} items`);
+    res.json(historyItems);
+  } catch (error) {
+    console.error('Scraping error:', error.message);
+    res.status(500).json({
+      error: error.message || 'Failed to scrape history. Please check your credentials.'
+    });
+  }
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Health check available at: http://localhost:${PORT}/api/health`);
 });
