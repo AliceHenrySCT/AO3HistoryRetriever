@@ -297,34 +297,32 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
               fandoms.push($(el).text().trim());
             });
 
-            // Extract last visited date
+            // Extract last visited date - look for the datetime after "Last visited:" text
             let lastVisited = null;
-
-            // Try multiple possible selectors for the date
-            const possibleDateSelectors = [
-              'h4.heading span.datetime',
-              'h4.heading .datetime',
-              'h4 span.datetime',
-              '.datetime',
-              'h4.heading'
-            ];
-
             let dateText = null;
-            for (const selector of possibleDateSelectors) {
-              const dateElement = $item.find(selector);
-              if (dateElement.length > 0) {
-                dateText = dateElement.text().trim();
-                console.log(`Found date element with selector "${selector}": "${dateText}"`);
-                break;
+
+            // Find all h4.heading elements and look for one containing "Last visited:"
+            $item.find('h4.heading').each((idx, heading) => {
+              const $heading = $(heading);
+              const fullHeadingText = $heading.text();
+
+              // Check if this heading contains "Last visited:"
+              if (fullHeadingText.includes('Last visited:')) {
+                // Get the datetime element within this h4
+                const datetime = $heading.find('.datetime');
+                if (datetime.length > 0) {
+                  dateText = datetime.text().trim();
+                  console.log(`Found "Last visited" date for "${title}": "${dateText}"`);
+                  return false; // break out of .each()
+                }
               }
-            }
+            });
 
             if (dateText) {
               // Try multiple date pattern matches
               const patterns = [
                 /\((\d{1,2}\s+\w+\s+\d{4})\)/,  // (14 Jan 2024)
                 /(\d{1,2}\s+\w+\s+\d{4})/,      // 14 Jan 2024
-                /Last visited:\s*(\d{1,2}\s+\w+\s+\d{4})/i,  // Last visited: 14 Jan 2024
               ];
 
               for (const pattern of patterns) {
@@ -340,7 +338,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
                 console.log(`✗ Could not parse date from text: "${dateText}" for "${title}"`);
               }
             } else {
-              console.log(`✗ No date element found for "${title}"`);
+              console.log(`✗ No "Last visited" date found for "${title}"`);
             }
 
             if (title && link) {
