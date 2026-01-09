@@ -257,6 +257,19 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
 
         $(selectorToUse).each((i, item) => {
           const $item = $(item);
+
+          // Debug: Log the structure of the first item
+          if (i === 0) {
+            console.log('=== FIRST ITEM STRUCTURE ===');
+            console.log('h4.heading elements:', $item.find('h4.heading').length);
+            console.log('h4.heading a.work elements:', $item.find('h4.heading a.work').length);
+            console.log('h4 a elements:', $item.find('h4 a').length);
+            console.log('a[href*="/works/"] elements:', $item.find('a[href*="/works/"]').length);
+            console.log('First few a tags:', $item.find('a').map((i, el) => $(el).attr('href')).get().slice(0, 5));
+            console.log('All classes on h4:', $item.find('h4').map((i, el) => $(el).attr('class')).get());
+            console.log('Inner HTML (first 500 chars):', $item.html().substring(0, 500));
+          }
+
           const titleElement = $item.find('h4.heading a.work');
 
           if (titleElement.length > 0) {
