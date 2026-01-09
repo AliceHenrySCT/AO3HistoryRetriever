@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import tough from 'tough-cookie';
+import * as tough from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
 import https from 'https';
 
