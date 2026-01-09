@@ -195,6 +195,29 @@ function calculateStatistics(historyItems) {
   return stats;
 }
 
+// Debug endpoint to test reading history page structure
+app.get('/api/debug-history', async (req, res) => {
+  const { username, password } = req.query;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  try {
+    const result = await scrapeAO3History(username, password, null, 1, null);
+    res.json({
+      success: true,
+      itemCount: result.length,
+      message: 'Check server logs for detailed debug output'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.get('/api/scrape-stream', async (req, res) => {
   const { username, password, year } = req.query;
 

@@ -217,9 +217,45 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
         console.log(`History page ${currentPage} fetched successfully`);
         const $ = cheerio.load(historyResponse.data);
 
+        // Debug: Log what we're actually seeing
+        console.log('Page title:', $('title').text());
+        console.log('Total li.reading elements:', $('li.reading').length);
+        console.log('Total li.work elements:', $('li.work').length);
+        console.log('Total li.blurb elements:', $('li.blurb').length);
+        console.log('Total li.reading.work.blurb.group elements:', $('li.reading.work.blurb.group').length);
+
+        // Try alternative selectors
+        console.log('Total ol.reading li.blurb elements:', $('ol.reading li.blurb').length);
+        console.log('Total li.blurb.work elements:', $('li.blurb.work').length);
+
         // Parse history items on this page
         let itemsOnPage = 0;
-        $('li.reading.work.blurb.group').each((i, item) => {
+        // Try multiple selector patterns
+        const possibleSelectors = [
+          'li.reading.work.blurb.group',
+          'ol.reading li.blurb',
+          'li.blurb.work',
+          'li.work.blurb'
+        ];
+
+        let workingSelector = null;
+        for (const selector of possibleSelectors) {
+          const count = $(selector).length;
+          console.log(`Trying selector "${selector}": found ${count} items`);
+          if (count > 0 && !workingSelector) {
+            workingSelector = selector;
+          }
+        }
+
+        if (!workingSelector) {
+          console.log('No items found with any selector. Logging page structure...');
+          console.log('First 2000 chars of page:', historyResponse.data.substring(0, 2000));
+        }
+
+        const selectorToUse = workingSelector || 'li.reading.work.blurb.group';
+        console.log(`Using selector: ${selectorToUse}`);
+
+        $(selectorToUse).each((i, item) => {
           const $item = $(item);
           const titleElement = $item.find('h4.heading a.work');
 
