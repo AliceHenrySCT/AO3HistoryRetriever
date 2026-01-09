@@ -238,7 +238,17 @@
 
             try {
                 const response = await fetch('/api/test-connection');
-                const data = await response.json();
+
+                let data;
+                const contentType = response.headers.get('content-type');
+
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Received non-JSON response:', text);
+                    throw new Error('Server returned an invalid response. Check console for details.');
+                }
 
                 if (data.success) {
                     connectionStatus.style.background = '#d4edda';
@@ -254,6 +264,7 @@
 
                 connectionStatus.style.display = 'block';
             } catch (err) {
+                console.error('Connection test error:', err);
                 connectionStatus.style.background = '#f8d7da';
                 connectionStatus.style.color = '#721c24';
                 connectionStatus.style.border = '1px solid #f5c6cb';
