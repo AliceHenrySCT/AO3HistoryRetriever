@@ -2,7 +2,6 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import * as tough from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
-import https from 'https';
 
 async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -16,22 +15,11 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
       // Create cookie jar for session management
       const cookieJar = new tough.CookieJar();
 
-      // Create HTTPS agent with keep-alive
-      const httpsAgent = new https.Agent({
-        keepAlive: true,
-        keepAliveMsecs: 1000,
-        maxSockets: 50,
-        maxFreeSockets: 10,
-        timeout: 60000,
-        rejectUnauthorized: true
-      });
-
-      // Create axios instance with cookie jar support
+      // Create axios instance with cookie jar support (no custom agent)
       const client = wrapper(axios.create({
         jar: cookieJar,
         withCredentials: true,
         timeout: 60000,
-        httpsAgent: httpsAgent,
         maxRedirects: 5,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -45,6 +33,11 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
           'Sec-Fetch-Site': 'none'
         }
       }));
+
+      // Add initial delay to avoid rate limiting
+      const initialDelay = 3000 + Math.random() * 2000;
+      console.log(`Waiting ${Math.round(initialDelay/1000)} seconds before starting...`);
+      await delay(initialDelay);
 
       // Get login page to extract authenticity token
       console.log('Fetching login page...');
@@ -80,8 +73,10 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
         'authenticity_token': token
       });
 
-      // Add delay before login
-      await delay(2000);
+      // Add delay before login (longer to avoid rate limiting)
+      const loginDelay = 4000 + Math.random() * 2000;
+      console.log(`Waiting ${Math.round(loginDelay/1000)} seconds before login...`);
+      await delay(loginDelay);
 
       // Login
       console.log('Attempting login...');
@@ -135,8 +130,10 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
 
       console.log('Login successful');
 
-      // Add delay to avoid rate limiting
-      await delay(2000);
+      // Add delay to avoid rate limiting (longer delay after login)
+      const historyDelay = 5000 + Math.random() * 3000;
+      console.log(`Waiting ${Math.round(historyDelay/1000)} seconds before fetching history...`);
+      await delay(historyDelay);
 
       // Get history page
       const historyUrl = `https://archiveofourown.org/users/${username}/readings`;
@@ -280,8 +277,8 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
         throw error;
       }
 
-      // Wait before retrying (exponential backoff)
-      const waitTime = attempt * 3000;
+      // Wait before retrying (exponential backoff with longer delays)
+      const waitTime = attempt * 10000;
       console.log(`Retrying in ${waitTime/1000} seconds...`);
       await delay(waitTime);
     }
