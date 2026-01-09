@@ -35,7 +35,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
       }));
 
       // Add initial delay to avoid rate limiting
-      const initialDelay = 3000 + Math.random() * 2000;
+      const initialDelay = 8000 + Math.random() * 4000;
       console.log(`Waiting ${Math.round(initialDelay/1000)} seconds before starting...`);
       await delay(initialDelay);
 
@@ -74,7 +74,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
       });
 
       // Add delay before login (longer to avoid rate limiting)
-      const loginDelay = 4000 + Math.random() * 2000;
+      const loginDelay = 10000 + Math.random() * 5000;
       console.log(`Waiting ${Math.round(loginDelay/1000)} seconds before login...`);
       await delay(loginDelay);
 
@@ -131,7 +131,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
       console.log('Login successful');
 
       // Add delay to avoid rate limiting (longer delay after login)
-      const historyDelay = 5000 + Math.random() * 3000;
+      const historyDelay = 12000 + Math.random() * 6000;
       console.log(`Waiting ${Math.round(historyDelay/1000)} seconds before fetching history...`);
       await delay(historyDelay);
 
@@ -238,15 +238,15 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
           currentPage++;
 
           // Add 1 minute delay every 5 pages
-          if (currentPage % 5 === 1 && currentPage > 1) {
+          if ((currentPage - 1) % 5 === 0 && currentPage > 1) {
             console.log('Reached 5 pages, waiting 60 seconds to avoid rate limiting...');
             await delay(60000);
-          } else {
-            // Regular delay between pages
-            const pageDelay = 5000 + Math.random() * 3000;
-            console.log(`Waiting ${Math.round(pageDelay/1000)} seconds before next page...`);
-            await delay(pageDelay);
           }
+
+          // Regular delay between pages (always apply)
+          const pageDelay = 15000 + Math.random() * 10000;
+          console.log(`Waiting ${Math.round(pageDelay/1000)} seconds before next page...`);
+          await delay(pageDelay);
         }
       }
 

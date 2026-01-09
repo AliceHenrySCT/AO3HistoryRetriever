@@ -1,7 +1,6 @@
 import express from 'express';
 import { scrapeAO3History } from './ao3_scraper.js';
 import axios from 'axios';
-import https from 'https';
 
 console.log('Node version:', process.version);
 console.log('Express and scraper loaded successfully');
@@ -17,25 +16,40 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Rate limiting for test connections
+let lastTestTime = 0;
+const TEST_COOLDOWN = 10000; // 10 seconds between tests
+
 // Test AO3 connectivity
 app.get('/api/test-connection', async (req, res) => {
   console.log('Testing connection to AO3...');
 
-  try {
-    const httpsAgent = new https.Agent({
-      keepAlive: true,
-      timeout: 30000,
-      rejectUnauthorized: true
+  // Check rate limiting
+  const now = Date.now();
+  const timeSinceLastTest = now - lastTestTime;
+  if (timeSinceLastTest < TEST_COOLDOWN) {
+    const waitTime = Math.ceil((TEST_COOLDOWN - timeSinceLastTest) / 1000);
+    return res.status(429).json({
+      success: false,
+      message: `Please wait ${waitTime} seconds before testing again`,
+      waitTime
     });
+  }
+
+  try {
+    // Add delay before making request to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const response = await axios.get('https://archiveofourown.org/', {
-      timeout: 30000,
-      httpsAgent: httpsAgent,
+      timeout: 60000,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
       }
     });
 
+    lastTestTime = Date.now();
     console.log('Connection test successful. Status:', response.status);
 
     res.json({
@@ -44,6 +58,7 @@ app.get('/api/test-connection', async (req, res) => {
       message: 'Successfully connected to AO3'
     });
   } catch (error) {
+    lastTestTime = Date.now();
     console.error('Connection test failed:', error.message);
     console.error('Error code:', error.code);
 
@@ -51,7 +66,7 @@ app.get('/api/test-connection', async (req, res) => {
       success: false,
       error: error.message,
       code: error.code,
-      message: 'Failed to connect to AO3'
+      message: 'Failed to connect to AO3. The site may be blocking requests or temporarily unavailable.'
     });
   }
 });
