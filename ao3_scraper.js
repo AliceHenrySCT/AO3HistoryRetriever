@@ -341,33 +341,35 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
           const targetYear = parseInt(year);
           console.log(`Year filter check - Last item on page: ${lastItemYear}, Target year: ${targetYear}, Last item title: "${lastItemOnPage.title}"`);
           if (lastItemYear < targetYear) {
-            console.log(`Last item on page ${currentPage} is from ${lastItemYear}, which is before target year ${targetYear}. Stopping pagination.`);
+            console.log(`\n========================================`);
+            console.log(`STOPPING: Last item on page ${currentPage} is from ${lastItemYear}, which is before target year ${targetYear}.`);
+            console.log(`All items from year ${targetYear} have been collected.`);
+            console.log(`========================================\n`);
             hasMorePages = false;
           } else {
-            console.log(`Last item year (${lastItemYear}) is >= target year (${targetYear}), continuing to next page...`);
+            console.log(`Last item year (${lastItemYear}) is >= target year (${targetYear}), continuing...`);
           }
         } else if (year) {
-          console.log(`Year filter enabled (${year}) but no valid dated item found on page ${currentPage}`);
+          console.log(`Year filter enabled (${year}) but no valid dated item found on page ${currentPage}, continuing...`);
         }
 
         // Check if there's a next page (only if we haven't already decided to stop)
         if (hasMorePages) {
           const nextPageLink = $('ol.pagination li.next a').attr('href');
           hasMorePages = !!nextPageLink && itemsOnPage > 0;
-        }
 
-        // Add 1 minute delay after every 5th page
-        if (currentPage % 5 === 0) {
-          console.log(`Completed ${currentPage} pages, waiting 60 seconds to avoid rate limiting...`);
-          await delay(60000);
-        }
-
-        if (hasMorePages) {
-          currentPage++;
+          if (hasMorePages) {
+            // Add 1 minute delay after every 5th page (only if continuing)
+            if (currentPage % 5 === 0) {
+              console.log(`Completed ${currentPage} pages, waiting 60 seconds to avoid rate limiting...`);
+              await delay(60000);
+            }
+            currentPage++;
+          }
         }
       }
 
-      console.log(`Found ${historyItems.length} total items across ${currentPage} pages`);
+      console.log(`\nPagination stopped. Found ${historyItems.length} total items across ${currentPage} pages`);
 
       // Filter by year if specified
       let filteredItems = historyItems;
