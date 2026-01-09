@@ -34,11 +34,6 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
         }
       }));
 
-      // Add initial delay to avoid rate limiting
-      const initialDelay = 8000 + Math.random() * 4000;
-      console.log(`Waiting ${Math.round(initialDelay/1000)} seconds before starting...`);
-      await delay(initialDelay);
-
       // Get login page to extract authenticity token
       console.log('Fetching login page...');
       console.log('Making request to: https://archiveofourown.org/users/login');
@@ -130,11 +125,6 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
         'authenticity_token': token
       });
 
-      // Add delay before login (longer to avoid rate limiting)
-      const loginDelay = 10000 + Math.random() * 5000;
-      console.log(`Waiting ${Math.round(loginDelay/1000)} seconds before login...`);
-      await delay(loginDelay);
-
       // Login
       console.log('Attempting login...');
       const loginResponse = await client.post(
@@ -187,11 +177,6 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
 
       console.log('Login successful');
 
-      // Add delay to avoid rate limiting (longer delay after login)
-      const historyDelay = 12000 + Math.random() * 6000;
-      console.log(`Waiting ${Math.round(historyDelay/1000)} seconds before fetching history...`);
-      await delay(historyDelay);
-
       // Fetch all pages of history with pagination
       const historyItems = [];
       let currentPage = 1;
@@ -230,6 +215,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
 
         // Parse history items on this page
         let itemsOnPage = 0;
+        let lastItemOnPage = null;
         // Try multiple selector patterns
         const possibleSelectors = [
           'li.reading.work.blurb.group',
@@ -315,7 +301,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
             }
 
             if (title && link) {
-              historyItems.push({
+              const workItem = {
                 title,
                 author,
                 url: `https://archiveofourown.org${link}`,
@@ -325,7 +311,9 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
                 rating,
                 fandoms,
                 lastVisited
-              });
+              };
+              historyItems.push(workItem);
+              lastItemOnPage = workItem;
               itemsOnPage++;
             }
           }
@@ -343,14 +331,11 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
 
         // If filtering by year, check if the last item on this page is before the target year
         // If so, we can stop scraping as all subsequent pages will be older
-        if (year && historyItems.length > 0) {
-          const lastItem = historyItems[historyItems.length - 1];
-          if (lastItem.lastVisited) {
-            const lastItemYear = lastItem.lastVisited.getFullYear();
-            if (lastItemYear < parseInt(year)) {
-              console.log(`Last item on page ${currentPage} is from ${lastItemYear}, which is before target year ${year}. Stopping pagination.`);
-              hasMorePages = false;
-            }
+        if (year && lastItemOnPage && lastItemOnPage.lastVisited) {
+          const lastItemYear = lastItemOnPage.lastVisited.getFullYear();
+          if (lastItemYear < parseInt(year)) {
+            console.log(`Last item on page ${currentPage} is from ${lastItemYear}, which is before target year ${year}. Stopping pagination.`);
+            hasMorePages = false;
           }
         }
 
@@ -364,15 +349,10 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
           currentPage++;
 
           // Add 1 minute delay every 5 pages
-          if ((currentPage - 1) % 5 === 0 && currentPage > 1) {
+          if (currentPage % 5 === 0) {
             console.log('Reached 5 pages, waiting 60 seconds to avoid rate limiting...');
             await delay(60000);
           }
-
-          // Regular delay between pages (always apply)
-          const pageDelay = 15000 + Math.random() * 10000;
-          console.log(`Waiting ${Math.round(pageDelay/1000)} seconds before next page...`);
-          await delay(pageDelay);
         }
       }
 
