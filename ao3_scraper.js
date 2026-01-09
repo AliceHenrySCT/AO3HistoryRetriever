@@ -297,26 +297,33 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
               fandoms.push($(el).text().trim());
             });
 
-            // Extract last visited date - look for the datetime after "Last visited:" text
+            // Extract last visited date - look for text after "Last visited:" in h4.viewed.heading
             let lastVisited = null;
             let dateText = null;
 
-            // Find all h4.heading elements and look for one containing "Last visited:"
-            $item.find('h4.heading').each((idx, heading) => {
-              const $heading = $(heading);
-              const fullHeadingText = $heading.text();
+            // Find h4.viewed.heading or h4.heading containing "Last visited:"
+            const viewedHeading = $item.find('h4.viewed.heading, h4.heading:contains("Last visited:")').first();
+
+            if (viewedHeading.length > 0) {
+              const fullHeadingText = viewedHeading.text();
 
               // Check if this heading contains "Last visited:"
               if (fullHeadingText.includes('Last visited:')) {
-                // Get the datetime element within this h4
-                const datetime = $heading.find('.datetime');
-                if (datetime.length > 0) {
-                  dateText = datetime.text().trim();
-                  console.log(`Found "Last visited" date for "${title}": "${dateText}"`);
-                  return false; // break out of .each()
+                // Extract the date text that comes after "Last visited:"
+                // Remove the span content and extract the remaining text
+                const span = viewedHeading.find('span').first();
+                if (span.length > 0) {
+                  // Get all text after the span
+                  const textAfterSpan = fullHeadingText.replace(span.text(), '').trim();
+                  // Extract just the date part (before any parentheses or additional text)
+                  const dateMatch = textAfterSpan.match(/^\s*(\d{1,2}\s+\w+\s+\d{4})/);
+                  if (dateMatch) {
+                    dateText = dateMatch[1];
+                    console.log(`Found "Last visited" date for "${title}": "${dateText}"`);
+                  }
                 }
               }
-            });
+            }
 
             if (dateText) {
               // Try multiple date pattern matches
