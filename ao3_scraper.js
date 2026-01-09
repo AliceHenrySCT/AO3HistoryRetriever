@@ -1,8 +1,8 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
-const tough = require('tough-cookie');
-const { wrapper } = require('axios-cookiejar-support');
-const https = require('https');
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import tough from 'tough-cookie';
+import { wrapper } from 'axios-cookiejar-support';
+import https from 'https';
 
 async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -290,4 +290,4 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
   throw new Error('All retry attempts failed');
 }
 
-module.exports = { scrapeAO3History };
+export { scrapeAO3History };

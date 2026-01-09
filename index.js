@@ -1,13 +1,10 @@
+import express from 'express';
+import { scrapeAO3History } from './ao3_scraper.js';
+import axios from 'axios';
+import https from 'https';
+
 console.log('Node version:', process.version);
-console.log('Current directory:', __dirname);
-console.log('Loading express...');
-
-const express = require('express');
-console.log('Express loaded successfully');
-
-console.log('Loading ao3_scraper...');
-const { scrapeAO3History } = require('./ao3_scraper');
-console.log('ao3_scraper loaded successfully');
+console.log('Express and scraper loaded successfully');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,9 +19,6 @@ app.get('/api/health', (req, res) => {
 
 // Test AO3 connectivity
 app.get('/api/test-connection', async (req, res) => {
-  const axios = require('axios');
-  const https = require('https');
-
   console.log('Testing connection to AO3...');
 
   try {
