@@ -118,6 +118,43 @@ function calculateStatistics(historyItems) {
   return stats;
 }
 
+app.get('/api/scrape-stream', async (req, res) => {
+  const { username, password, year } = req.query;
+
+  if (!username || !password) {
+    res.writeHead(400, { 'Content-Type': 'text/event-stream' });
+    res.write(`event: error\ndata: ${JSON.stringify({ error: 'Username and password required' })}\n\n`);
+    res.end();
+    return;
+  }
+
+  console.log(`Starting scrape for user: ${username}${year ? ` (Year: ${year})` : ''}`);
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+
+  const onProgress = (progressData) => {
+    res.write(`event: progress\ndata: ${JSON.stringify(progressData)}\n\n`);
+  };
+
+  try {
+    const historyItems = await scrapeAO3History(username, password, year, 3, onProgress);
+    console.log(`Successfully scraped ${historyItems.length} items`);
+
+    const statistics = calculateStatistics(historyItems);
+
+    res.write(`event: complete\ndata: ${JSON.stringify({ items: historyItems, statistics })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Scraping error:', error.message);
+    res.write(`event: error\ndata: ${JSON.stringify({ error: error.message || 'Failed to scrape history' })}\n\n`);
+    res.end();
+  }
+});
+
 app.post('/api/scrape', async (req, res) => {
   const { username, password, year } = req.body;
 

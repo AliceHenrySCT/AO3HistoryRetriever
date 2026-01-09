@@ -7,7 +7,7 @@ async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function scrapeAO3History(username, password, year = null, retries = 3) {
+async function scrapeAO3History(username, password, year = null, retries = 3, onProgress = null) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`Starting AO3 scraper (attempt ${attempt}/${retries})...`);
@@ -138,6 +138,14 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
       // Fetch all pages of history with pagination
       const historyItems = [];
       let currentPage = 1;
+
+      if (onProgress) {
+        onProgress({
+          currentPage: 0,
+          totalItems: 0,
+          status: 'Starting to fetch history pages...'
+        });
+      }
       let hasMorePages = true;
 
       while (hasMorePages) {
@@ -229,6 +237,14 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
         });
 
         console.log(`Found ${itemsOnPage} items on page ${currentPage} (total: ${historyItems.length})`);
+
+        if (onProgress) {
+          onProgress({
+            currentPage,
+            totalItems: historyItems.length,
+            status: `Fetched page ${currentPage} - Found ${historyItems.length} total items`
+          });
+        }
 
         // Check if there's a next page
         const nextPageLink = $('ol.pagination li.next a').attr('href');

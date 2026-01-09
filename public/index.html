@@ -118,6 +118,47 @@
             to { transform: rotate(360deg); }
         }
 
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .progress-status {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .progress-counter {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .progress-item {
+            text-align: center;
+        }
+
+        .progress-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #667eea;
+            line-height: 1;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
         .error {
             background: #fee;
             color: #c33;
@@ -311,6 +352,20 @@
             <span class="spinner"></span>Fetching your reading history...
         </div>
 
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-status" id="progressStatus">Starting scrape...</div>
+            <div class="progress-counter">
+                <div class="progress-item">
+                    <div class="progress-number" id="currentPage">0</div>
+                    <div class="progress-label">Current Page</div>
+                </div>
+                <div class="progress-item">
+                    <div class="progress-number" id="totalItems">0</div>
+                    <div class="progress-label">Items Found</div>
+                </div>
+            </div>
+        </div>
+
         <div class="error" id="error"></div>
 
         <div class="results" id="results">
@@ -413,6 +468,8 @@
             }
         });
 
+        let eventSource = null;
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -421,33 +478,65 @@
             const year = document.getElementById('year').value;
 
             loading.style.display = 'block';
+            document.getElementById('progressContainer').style.display = 'block';
             error.style.display = 'none';
             results.style.display = 'none';
             submitBtn.disabled = true;
 
-            try {
-                const response = await fetch('/api/scrape', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username, password, year }),
-                });
+            document.getElementById('currentPage').textContent = '0';
+            document.getElementById('totalItems').textContent = '0';
+            document.getElementById('progressStatus').textContent = 'Starting scrape...';
 
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to scrape history');
-                }
-
-                displayResults(data.items, data.statistics);
-            } catch (err) {
-                error.textContent = err.message;
-                error.style.display = 'block';
-            } finally {
-                loading.style.display = 'none';
-                submitBtn.disabled = false;
+            if (eventSource) {
+                eventSource.close();
             }
+
+            const params = new URLSearchParams({ username, password, year });
+            eventSource = new EventSource(`/api/scrape-stream?${params.toString()}`);
+
+            eventSource.addEventListener('progress', (e) => {
+                const data = JSON.parse(e.data);
+                document.getElementById('currentPage').textContent = data.currentPage;
+                document.getElementById('totalItems').textContent = data.totalItems;
+                document.getElementById('progressStatus').textContent = data.status;
+            });
+
+            eventSource.addEventListener('complete', (e) => {
+                const data = JSON.parse(e.data);
+                eventSource.close();
+                loading.style.display = 'none';
+                document.getElementById('progressContainer').style.display = 'none';
+                submitBtn.disabled = false;
+                displayResults(data.items, data.statistics);
+            });
+
+            eventSource.addEventListener('error', (e) => {
+                eventSource.close();
+                loading.style.display = 'none';
+                document.getElementById('progressContainer').style.display = 'none';
+                submitBtn.disabled = false;
+
+                if (e.data) {
+                    try {
+                        const errorData = JSON.parse(e.data);
+                        error.textContent = errorData.error || 'Failed to scrape history';
+                    } catch {
+                        error.textContent = 'Failed to scrape history';
+                    }
+                } else {
+                    error.textContent = 'Connection lost. Please try again.';
+                }
+                error.style.display = 'block';
+            });
+
+            eventSource.onerror = (e) => {
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    eventSource.close();
+                    loading.style.display = 'none';
+                    document.getElementById('progressContainer').style.display = 'none';
+                    submitBtn.disabled = false;
+                }
+            };
         });
 
         function formatNumber(num) {
