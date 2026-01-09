@@ -135,93 +135,122 @@ async function scrapeAO3History(username, password, year = null, retries = 3) {
       console.log(`Waiting ${Math.round(historyDelay/1000)} seconds before fetching history...`);
       await delay(historyDelay);
 
-      // Get history page
-      const historyUrl = `https://archiveofourown.org/users/${username}/readings`;
-      console.log('Fetching reading history...');
-      const historyResponse = await client.get(historyUrl, {
-        headers: {
-          'Referer': 'https://archiveofourown.org/'
-        }
-      });
-      console.log('History page fetched successfully');
-      const $ = cheerio.load(historyResponse.data);
-
-      // Parse history items
+      // Fetch all pages of history with pagination
       const historyItems = [];
-      $('li.reading.work.blurb.group').each((i, item) => {
-        const $item = $(item);
-        const titleElement = $item.find('h4.heading a.work');
+      let currentPage = 1;
+      let hasMorePages = true;
 
-        if (titleElement.length > 0) {
-          const title = titleElement.first().text().trim();
-          const link = titleElement.first().attr('href');
-          const authorElement = $item.find('a[rel="author"]');
-          const author = authorElement.length > 0 ? authorElement.first().text().trim() : 'Unknown';
+      while (hasMorePages) {
+        const historyUrl = `https://archiveofourown.org/users/${username}/readings?page=${currentPage}`;
+        console.log(`Fetching reading history page ${currentPage}...`);
 
-          // Extract word count
-          let wordCount = 0;
-          const statsElement = $item.find('dd.words');
-          if (statsElement.length > 0) {
-            const wordsText = statsElement.text().trim().replace(/,/g, '');
-            wordCount = parseInt(wordsText) || 0;
+        const historyResponse = await client.get(historyUrl, {
+          headers: {
+            'Referer': 'https://archiveofourown.org/'
           }
+        });
+        console.log(`History page ${currentPage} fetched successfully`);
+        const $ = cheerio.load(historyResponse.data);
 
-          // Extract tags (relationships/ships, characters, freeform tags)
-          const tags = [];
-          const relationships = [];
+        // Parse history items on this page
+        let itemsOnPage = 0;
+        $('li.reading.work.blurb.group').each((i, item) => {
+          const $item = $(item);
+          const titleElement = $item.find('h4.heading a.work');
 
-          $item.find('li.relationships a.tag').each((i, el) => {
-            const relationship = $(el).text().trim();
-            relationships.push(relationship);
-            tags.push(relationship);
-          });
+          if (titleElement.length > 0) {
+            const title = titleElement.first().text().trim();
+            const link = titleElement.first().attr('href');
+            const authorElement = $item.find('a[rel="author"]');
+            const author = authorElement.length > 0 ? authorElement.first().text().trim() : 'Unknown';
 
-          $item.find('li.characters a.tag').each((i, el) => {
-            tags.push($(el).text().trim());
-          });
+            // Extract word count
+            let wordCount = 0;
+            const statsElement = $item.find('dd.words');
+            if (statsElement.length > 0) {
+              const wordsText = statsElement.text().trim().replace(/,/g, '');
+              wordCount = parseInt(wordsText) || 0;
+            }
 
-          $item.find('li.freeforms a.tag').each((i, el) => {
-            tags.push($(el).text().trim());
-          });
+            // Extract tags (relationships/ships, characters, freeform tags)
+            const tags = [];
+            const relationships = [];
 
-          // Extract rating
-          const ratingElement = $item.find('span.rating span.text');
-          const rating = ratingElement.length > 0 ? ratingElement.text().trim() : 'Not Rated';
+            $item.find('li.relationships a.tag').each((i, el) => {
+              const relationship = $(el).text().trim();
+              relationships.push(relationship);
+              tags.push(relationship);
+            });
 
-          // Extract fandom
-          const fandoms = [];
-          $item.find('h5.fandoms a.tag').each((i, el) => {
-            fandoms.push($(el).text().trim());
-          });
+            $item.find('li.characters a.tag').each((i, el) => {
+              tags.push($(el).text().trim());
+            });
 
-          // Extract last visited date
-          let lastVisited = null;
-          const dateElement = $item.find('h4.heading span.datetime');
-          if (dateElement.length > 0) {
-            const dateText = dateElement.text().trim();
-            const dateMatch = dateText.match(/\((\d{1,2}\s+\w+\s+\d{4})\)/);
-            if (dateMatch) {
-              lastVisited = new Date(dateMatch[1]);
+            $item.find('li.freeforms a.tag').each((i, el) => {
+              tags.push($(el).text().trim());
+            });
+
+            // Extract rating
+            const ratingElement = $item.find('span.rating span.text');
+            const rating = ratingElement.length > 0 ? ratingElement.text().trim() : 'Not Rated';
+
+            // Extract fandom
+            const fandoms = [];
+            $item.find('h5.fandoms a.tag').each((i, el) => {
+              fandoms.push($(el).text().trim());
+            });
+
+            // Extract last visited date
+            let lastVisited = null;
+            const dateElement = $item.find('h4.heading span.datetime');
+            if (dateElement.length > 0) {
+              const dateText = dateElement.text().trim();
+              const dateMatch = dateText.match(/\((\d{1,2}\s+\w+\s+\d{4})\)/);
+              if (dateMatch) {
+                lastVisited = new Date(dateMatch[1]);
+              }
+            }
+
+            if (title && link) {
+              historyItems.push({
+                title,
+                author,
+                url: `https://archiveofourown.org${link}`,
+                wordCount,
+                tags,
+                relationships,
+                rating,
+                fandoms,
+                lastVisited
+              });
+              itemsOnPage++;
             }
           }
+        });
 
-          if (title && link) {
-            historyItems.push({
-              title,
-              author,
-              url: `https://archiveofourown.org${link}`,
-              wordCount,
-              tags,
-              relationships,
-              rating,
-              fandoms,
-              lastVisited
-            });
+        console.log(`Found ${itemsOnPage} items on page ${currentPage} (total: ${historyItems.length})`);
+
+        // Check if there's a next page
+        const nextPageLink = $('ol.pagination li.next a').attr('href');
+        hasMorePages = !!nextPageLink && itemsOnPage > 0;
+
+        if (hasMorePages) {
+          currentPage++;
+
+          // Add 1 minute delay every 5 pages
+          if (currentPage % 5 === 1 && currentPage > 1) {
+            console.log('Reached 5 pages, waiting 60 seconds to avoid rate limiting...');
+            await delay(60000);
+          } else {
+            // Regular delay between pages
+            const pageDelay = 5000 + Math.random() * 3000;
+            console.log(`Waiting ${Math.round(pageDelay/1000)} seconds before next page...`);
+            await delay(pageDelay);
           }
         }
-      });
+      }
 
-      console.log(`Found ${historyItems.length} items in reading history`);
+      console.log(`Found ${historyItems.length} total items across ${currentPage} pages`);
 
       // Filter by year if specified
       let filteredItems = historyItems;
