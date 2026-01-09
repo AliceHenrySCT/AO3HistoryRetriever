@@ -54,6 +54,53 @@ app.get('/api/test-connection', async (req, res) => {
   }
 });
 
+function calculateStatistics(historyItems) {
+  const stats = {
+    totalFics: historyItems.length,
+    totalWords: 0,
+    topTags: [],
+    topShips: [],
+    topFandoms: []
+  };
+
+  const tagCounts = {};
+  const shipCounts = {};
+  const fandomCounts = {};
+
+  historyItems.forEach(item => {
+    stats.totalWords += item.wordCount || 0;
+
+    item.tags?.forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+
+    item.relationships?.forEach(ship => {
+      shipCounts[ship] = (shipCounts[ship] || 0) + 1;
+    });
+
+    item.fandoms?.forEach(fandom => {
+      fandomCounts[fandom] = (fandomCounts[fandom] || 0) + 1;
+    });
+  });
+
+  stats.topTags = Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([tag, count]) => ({ tag, count }));
+
+  stats.topShips = Object.entries(shipCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([ship, count]) => ({ ship, count }));
+
+  stats.topFandoms = Object.entries(fandomCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([fandom, count]) => ({ fandom, count }));
+
+  return stats;
+}
+
 app.post('/api/scrape', async (req, res) => {
   const { username, password } = req.body;
 
@@ -66,7 +113,13 @@ app.post('/api/scrape', async (req, res) => {
   try {
     const historyItems = await scrapeAO3History(username, password);
     console.log(`Successfully scraped ${historyItems.length} items`);
-    res.json(historyItems);
+
+    const statistics = calculateStatistics(historyItems);
+
+    res.json({
+      items: historyItems,
+      statistics
+    });
   } catch (error) {
     console.error('Scraping error:', error.message);
     res.status(500).json({

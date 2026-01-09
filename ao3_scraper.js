@@ -161,11 +161,52 @@ async function scrapeAO3History(username, password, retries = 3) {
           const authorElement = $item.find('a[rel="author"]');
           const author = authorElement.length > 0 ? authorElement.first().text().trim() : 'Unknown';
 
+          // Extract word count
+          let wordCount = 0;
+          const statsElement = $item.find('dd.words');
+          if (statsElement.length > 0) {
+            const wordsText = statsElement.text().trim().replace(/,/g, '');
+            wordCount = parseInt(wordsText) || 0;
+          }
+
+          // Extract tags (relationships/ships, characters, freeform tags)
+          const tags = [];
+          const relationships = [];
+
+          $item.find('li.relationships a.tag').each((i, el) => {
+            const relationship = $(el).text().trim();
+            relationships.push(relationship);
+            tags.push(relationship);
+          });
+
+          $item.find('li.characters a.tag').each((i, el) => {
+            tags.push($(el).text().trim());
+          });
+
+          $item.find('li.freeforms a.tag').each((i, el) => {
+            tags.push($(el).text().trim());
+          });
+
+          // Extract rating
+          const ratingElement = $item.find('span.rating span.text');
+          const rating = ratingElement.length > 0 ? ratingElement.text().trim() : 'Not Rated';
+
+          // Extract fandom
+          const fandoms = [];
+          $item.find('h5.fandoms a.tag').each((i, el) => {
+            fandoms.push($(el).text().trim());
+          });
+
           if (title && link) {
             historyItems.push({
               title,
               author,
-              url: `https://archiveofourown.org${link}`
+              url: `https://archiveofourown.org${link}`,
+              wordCount,
+              tags,
+              relationships,
+              rating,
+              fandoms
             });
           }
         }

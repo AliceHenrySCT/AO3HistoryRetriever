@@ -136,6 +136,96 @@
             font-size: 20px;
         }
 
+        .statistics {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .statistics h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .top-lists {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .top-list {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .top-list h4 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .top-list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .top-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .top-list-name {
+            color: #555;
+            font-size: 14px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 10px;
+        }
+
+        .top-list-count {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
         .history-list {
             list-style: none;
         }
@@ -214,6 +304,34 @@
         <div class="error" id="error"></div>
 
         <div class="results" id="results">
+            <div class="statistics" id="statistics">
+                <h3>Reading Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalFics">0</div>
+                        <div class="stat-label">Total Fics</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalWords">0</div>
+                        <div class="stat-label">Total Words</div>
+                    </div>
+                </div>
+                <div class="top-lists">
+                    <div class="top-list">
+                        <h4>Top Ships</h4>
+                        <div id="topShips"></div>
+                    </div>
+                    <div class="top-list">
+                        <h4>Top Tags</h4>
+                        <div id="topTags"></div>
+                    </div>
+                    <div class="top-list">
+                        <h4>Top Fandoms</h4>
+                        <div id="topFandoms"></div>
+                    </div>
+                </div>
+            </div>
+
             <h2>Your Reading History</h2>
             <ul class="history-list" id="historyList"></ul>
             <div class="count" id="count"></div>
@@ -302,7 +420,7 @@
                     throw new Error(data.error || 'Failed to scrape history');
                 }
 
-                displayResults(data);
+                displayResults(data.items, data.statistics);
             } catch (err) {
                 error.textContent = err.message;
                 error.style.display = 'block';
@@ -312,13 +430,74 @@
             }
         });
 
-        function displayResults(items) {
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+
+        function displayResults(items, statistics) {
             historyList.innerHTML = '';
 
-            if (items.length === 0) {
+            if (!items || items.length === 0) {
                 count.textContent = 'No reading history found.';
                 results.style.display = 'block';
                 return;
+            }
+
+            document.getElementById('totalFics').textContent = statistics.totalFics;
+            document.getElementById('totalWords').textContent = formatNumber(statistics.totalWords);
+
+            const topShipsDiv = document.getElementById('topShips');
+            topShipsDiv.innerHTML = '';
+            if (statistics.topShips.length === 0) {
+                topShipsDiv.innerHTML = '<div style="color: #999; font-size: 14px;">No ships found</div>';
+            } else {
+                statistics.topShips.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'top-list-item';
+                    div.innerHTML = `
+                        <div class="top-list-name" title="${escapeHtml(item.ship)}">${escapeHtml(item.ship)}</div>
+                        <div class="top-list-count">${item.count}</div>
+                    `;
+                    topShipsDiv.appendChild(div);
+                });
+            }
+
+            const topTagsDiv = document.getElementById('topTags');
+            topTagsDiv.innerHTML = '';
+            if (statistics.topTags.length === 0) {
+                topTagsDiv.innerHTML = '<div style="color: #999; font-size: 14px;">No tags found</div>';
+            } else {
+                statistics.topTags.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'top-list-item';
+                    div.innerHTML = `
+                        <div class="top-list-name" title="${escapeHtml(item.tag)}">${escapeHtml(item.tag)}</div>
+                        <div class="top-list-count">${item.count}</div>
+                    `;
+                    topTagsDiv.appendChild(div);
+                });
+            }
+
+            const topFandomsDiv = document.getElementById('topFandoms');
+            topFandomsDiv.innerHTML = '';
+            if (statistics.topFandoms.length === 0) {
+                topFandomsDiv.innerHTML = '<div style="color: #999; font-size: 14px;">No fandoms found</div>';
+            } else {
+                statistics.topFandoms.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'top-list-item';
+                    div.innerHTML = `
+                        <div class="top-list-name" title="${escapeHtml(item.fandom)}">${escapeHtml(item.fandom)}</div>
+                        <div class="top-list-count">${item.count}</div>
+                    `;
+                    topFandomsDiv.appendChild(div);
+                });
             }
 
             items.forEach((item) => {
