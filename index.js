@@ -102,16 +102,16 @@ function calculateStatistics(historyItems) {
 }
 
 app.post('/api/scrape', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, year } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
 
-  console.log(`Starting scrape for user: ${username}`);
+  console.log(`Starting scrape for user: ${username}${year ? ` (Year: ${year})` : ''}`);
 
   try {
-    const historyItems = await scrapeAO3History(username, password);
+    const historyItems = await scrapeAO3History(username, password, year);
     console.log(`Successfully scraped ${historyItems.length} items`);
 
     const statistics = calculateStatistics(historyItems);

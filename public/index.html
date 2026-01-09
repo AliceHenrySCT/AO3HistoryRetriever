@@ -50,17 +50,20 @@
         }
 
         input[type="text"],
-        input[type="password"] {
+        input[type="password"],
+        select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
             font-size: 14px;
             transition: border-color 0.3s;
+            background-color: white;
         }
 
         input[type="text"]:focus,
-        input[type="password"]:focus {
+        input[type="password"]:focus,
+        select:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -294,6 +297,13 @@
                 <input type="password" id="password" name="password" required>
             </div>
 
+            <div class="form-group">
+                <label for="year">Year</label>
+                <select id="year" name="year">
+                    <option value="">All Years</option>
+                </select>
+            </div>
+
             <button type="submit" id="submitBtn">Scrape History</button>
         </form>
 
@@ -348,6 +358,15 @@
         const submitBtn = document.getElementById('submitBtn');
         const testConnectionBtn = document.getElementById('testConnection');
         const connectionStatus = document.getElementById('connectionStatus');
+        const yearSelect = document.getElementById('year');
+
+        const currentYear = new Date().getFullYear();
+        for (let year = currentYear; year >= 2008; year--) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+        }
 
         testConnectionBtn.addEventListener('click', async () => {
             testConnectionBtn.disabled = true;
@@ -399,6 +418,7 @@
 
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const year = document.getElementById('year').value;
 
             loading.style.display = 'block';
             error.style.display = 'none';
@@ -411,7 +431,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ username, password }),
+                    body: JSON.stringify({ username, password, year }),
                 });
 
                 const data = await response.json();

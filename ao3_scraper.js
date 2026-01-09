@@ -8,7 +8,7 @@ async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function scrapeAO3History(username, password, retries = 3) {
+async function scrapeAO3History(username, password, year = null, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`Starting AO3 scraper (attempt ${attempt}/${retries})...`);
@@ -197,6 +197,17 @@ async function scrapeAO3History(username, password, retries = 3) {
             fandoms.push($(el).text().trim());
           });
 
+          // Extract last visited date
+          let lastVisited = null;
+          const dateElement = $item.find('h4.heading span.datetime');
+          if (dateElement.length > 0) {
+            const dateText = dateElement.text().trim();
+            const dateMatch = dateText.match(/\((\d{1,2}\s+\w+\s+\d{4})\)/);
+            if (dateMatch) {
+              lastVisited = new Date(dateMatch[1]);
+            }
+          }
+
           if (title && link) {
             historyItems.push({
               title,
@@ -206,14 +217,26 @@ async function scrapeAO3History(username, password, retries = 3) {
               tags,
               relationships,
               rating,
-              fandoms
+              fandoms,
+              lastVisited
             });
           }
         }
       });
 
       console.log(`Found ${historyItems.length} items in reading history`);
-      return historyItems;
+
+      // Filter by year if specified
+      let filteredItems = historyItems;
+      if (year) {
+        filteredItems = historyItems.filter(item => {
+          if (!item.lastVisited) return false;
+          return item.lastVisited.getFullYear() === parseInt(year);
+        });
+        console.log(`Filtered to ${filteredItems.length} items for year ${year}`);
+      }
+
+      return filteredItems;
 
     } catch (error) {
       console.error(`Attempt ${attempt}/${retries} failed:`, {
