@@ -341,9 +341,24 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
           });
         }
 
-        // Check if there's a next page
-        const nextPageLink = $('ol.pagination li.next a').attr('href');
-        hasMorePages = !!nextPageLink && itemsOnPage > 0;
+        // If filtering by year, check if the last item on this page is before the target year
+        // If so, we can stop scraping as all subsequent pages will be older
+        if (year && historyItems.length > 0) {
+          const lastItem = historyItems[historyItems.length - 1];
+          if (lastItem.lastVisited) {
+            const lastItemYear = lastItem.lastVisited.getFullYear();
+            if (lastItemYear < parseInt(year)) {
+              console.log(`Last item on page ${currentPage} is from ${lastItemYear}, which is before target year ${year}. Stopping pagination.`);
+              hasMorePages = false;
+            }
+          }
+        }
+
+        // Check if there's a next page (only if we haven't already decided to stop)
+        if (hasMorePages) {
+          const nextPageLink = $('ol.pagination li.next a').attr('href');
+          hasMorePages = !!nextPageLink && itemsOnPage > 0;
+        }
 
         if (hasMorePages) {
           currentPage++;
