@@ -1,5 +1,13 @@
+console.log('Node version:', process.version);
+console.log('Current directory:', __dirname);
+console.log('Loading express...');
+
 const express = require('express');
+console.log('Express loaded successfully');
+
+console.log('Loading ao3_scraper...');
 const { scrapeAO3History } = require('./ao3_scraper');
+console.log('ao3_scraper loaded successfully');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
