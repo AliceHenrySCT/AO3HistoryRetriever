@@ -356,14 +356,14 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
           hasMorePages = !!nextPageLink && itemsOnPage > 0;
         }
 
+        // Add 1 minute delay after every 5th page
+        if (currentPage % 5 === 0) {
+          console.log(`Completed ${currentPage} pages, waiting 60 seconds to avoid rate limiting...`);
+          await delay(60000);
+        }
+
         if (hasMorePages) {
           currentPage++;
-
-          // Add 1 minute delay every 5 pages
-          if (currentPage % 5 === 0) {
-            console.log('Reached 5 pages, waiting 60 seconds to avoid rate limiting...');
-            await delay(60000);
-          }
         }
       }
 
