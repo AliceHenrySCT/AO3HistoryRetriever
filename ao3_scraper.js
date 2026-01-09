@@ -215,6 +215,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
 
         // Parse history items on this page
         let itemsOnPage = 0;
+        // Track the last item with a valid date on this page (reset for each page)
         let lastItemOnPage = null;
         // Try multiple selector patterns
         const possibleSelectors = [
@@ -297,6 +298,7 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
               const dateMatch = dateText.match(/\((\d{1,2}\s+\w+\s+\d{4})\)/);
               if (dateMatch) {
                 lastVisited = new Date(dateMatch[1]);
+                console.log(`Parsed date for "${title}": ${lastVisited.toISOString()} (Year: ${lastVisited.getFullYear()})`);
               }
             }
 
@@ -313,7 +315,10 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
                 lastVisited
               };
               historyItems.push(workItem);
-              lastItemOnPage = workItem;
+              // Only update lastItemOnPage if this item has a valid date
+              if (lastVisited) {
+                lastItemOnPage = workItem;
+              }
               itemsOnPage++;
             }
           }
@@ -333,10 +338,16 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
         // If so, we can stop scraping as all subsequent pages will be older
         if (year && lastItemOnPage && lastItemOnPage.lastVisited) {
           const lastItemYear = lastItemOnPage.lastVisited.getFullYear();
-          if (lastItemYear < parseInt(year)) {
-            console.log(`Last item on page ${currentPage} is from ${lastItemYear}, which is before target year ${year}. Stopping pagination.`);
+          const targetYear = parseInt(year);
+          console.log(`Year filter check - Last item on page: ${lastItemYear}, Target year: ${targetYear}, Last item title: "${lastItemOnPage.title}"`);
+          if (lastItemYear < targetYear) {
+            console.log(`Last item on page ${currentPage} is from ${lastItemYear}, which is before target year ${targetYear}. Stopping pagination.`);
             hasMorePages = false;
+          } else {
+            console.log(`Last item year (${lastItemYear}) is >= target year (${targetYear}), continuing to next page...`);
           }
+        } else if (year) {
+          console.log(`Year filter enabled (${year}) but no valid dated item found on page ${currentPage}`);
         }
 
         // Check if there's a next page (only if we haven't already decided to stop)
