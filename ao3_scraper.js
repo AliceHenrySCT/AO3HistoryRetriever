@@ -21,16 +21,16 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
         withCredentials: true,
         timeout: 60000,
         maxRedirects: 5,
+        validateStatus: function (status) {
+          return status >= 200 && status < 600;
+        },
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
           'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none'
+          'Upgrade-Insecure-Requests': '1'
         }
       }));
 
@@ -48,10 +48,67 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
         loginPageResponse = await client.get('https://archiveofourown.org/users/login');
         console.log('Login page response status:', loginPageResponse.status);
         console.log('Login page response headers:', JSON.stringify(loginPageResponse.headers, null, 2));
+
+        if (loginPageResponse.status === 429) {
+          const retryAfter = loginPageResponse.headers['retry-after'];
+          const cfRay = loginPageResponse.headers['cf-ray'];
+          console.error('Rate limit detected (429)!');
+          console.error('Retry-After header:', retryAfter);
+          console.error('CF-Ray:', cfRay);
+          console.error('Response body (first 500 chars):',
+            typeof loginPageResponse.data === 'string'
+              ? loginPageResponse.data.substring(0, 500)
+              : JSON.stringify(loginPageResponse.data).substring(0, 500)
+          );
+          throw new Error(`AO3 returned 429 (Rate Limited). ${retryAfter ? `Retry after ${retryAfter} seconds.` : 'Please wait and try again later.'}`);
+        }
+
+        if (loginPageResponse.status === 403) {
+          console.error('403 Forbidden detected - possible bot detection');
+          console.error('Response body (first 500 chars):',
+            typeof loginPageResponse.data === 'string'
+              ? loginPageResponse.data.substring(0, 500)
+              : JSON.stringify(loginPageResponse.data).substring(0, 500)
+          );
+          throw new Error('AO3 returned 403 Forbidden. This may indicate bot detection or IP blocking. Try again later with a different connection.');
+        }
+
+        if (loginPageResponse.status === 503) {
+          console.error('503 Service Unavailable - AO3 may be down');
+          throw new Error('AO3 is temporarily unavailable (503). Please try again later.');
+        }
+
+        if (loginPageResponse.status >= 400) {
+          console.error(`Unexpected status code: ${loginPageResponse.status}`);
+          console.error('Response body (first 500 chars):',
+            typeof loginPageResponse.data === 'string'
+              ? loginPageResponse.data.substring(0, 500)
+              : JSON.stringify(loginPageResponse.data).substring(0, 500)
+          );
+          throw new Error(`AO3 returned error status ${loginPageResponse.status}`);
+        }
+
       } catch (fetchError) {
         console.error('Failed to fetch login page:');
         console.error('Error code:', fetchError.code);
         console.error('Error message:', fetchError.message);
+
+        if (fetchError.response) {
+          console.error('Response status:', fetchError.response.status);
+          console.error('Response statusText:', fetchError.response.statusText);
+          console.error('Response headers:', JSON.stringify(fetchError.response.headers, null, 2));
+          console.error('Response data (first 500 chars):',
+            typeof fetchError.response.data === 'string'
+              ? fetchError.response.data.substring(0, 500)
+              : JSON.stringify(fetchError.response.data).substring(0, 500)
+          );
+        } else if (fetchError.request) {
+          console.error('Request was made but no response received');
+          console.error('Request headers:', JSON.stringify(fetchError.config?.headers, null, 2));
+        } else {
+          console.error('Error setting up request:', fetchError.message);
+        }
+
         console.error('Error stack:', fetchError.stack);
         throw fetchError;
       }
