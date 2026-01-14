@@ -405,6 +405,11 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
           hasMorePages = !!nextPageLink && itemsOnPage > 0;
 
           if (hasMorePages) {
+            // Add random delay between 2-5 seconds between each page
+            const randomDelay = Math.floor(Math.random() * 3000) + 2000; // 2000-5000ms
+            console.log(`Waiting ${randomDelay/1000} seconds before next page...`);
+            await delay(randomDelay);
+
             // Add 1 minute delay after every 5th page (only if continuing)
             if (currentPage % 5 === 0) {
               console.log(`Completed ${currentPage} pages, waiting 60 seconds to avoid rate limiting...`);
