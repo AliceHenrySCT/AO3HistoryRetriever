@@ -118,6 +118,11 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
 
       console.log('Authenticity token found');
 
+      // Add random delay before logging in (2-4 seconds)
+      const loginDelay = Math.floor(Math.random() * 2000) + 2000; // 2000-4000ms
+      console.log(`Waiting ${loginDelay/1000} seconds before logging in...`);
+      await delay(loginDelay);
+
       // Prepare login data
       const loginData = new URLSearchParams({
         'user[login]': username,
@@ -176,6 +181,11 @@ async function scrapeAO3History(username, password, year = null, retries = 3, on
       }
 
       console.log('Login successful');
+
+      // Add random delay after login before fetching history (2-4 seconds)
+      const postLoginDelay = Math.floor(Math.random() * 2000) + 2000; // 2000-4000ms
+      console.log(`Waiting ${postLoginDelay/1000} seconds after login...`);
+      await delay(postLoginDelay);
 
       // Fetch all pages of history with pagination
       const historyItems = [];
