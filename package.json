@@ -1,21 +1,10 @@
 {
-  "name": "node-starter",
+  "name": "ao3-scraper",
   "private": true,
-  "type": "module",
-  "engines": {
-    "node": ">=20.18.1"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm install",
-    "start": "node index.js",
-    "dev": "node index.js"
-  },
-  "dependencies": {
-    "axios": "^1.13.2",
-    "axios-cookiejar-support": "^6.0.5",
-    "cheerio": "^1.1.2",
-    "express": "^4.18.2",
-    "tough-cookie": "^6.0.0"
+    "build": "pip3 install --break-system-packages -r requirements.txt",
+    "start": "python3 app.py",
+    "dev": "python3 app.py"
   }
 }

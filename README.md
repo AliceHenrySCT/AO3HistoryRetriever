@@ -30,26 +30,26 @@ Render is a free hosting platform that's perfect for this application.
 
 If automatic detection doesn't work:
 
-- **Build Command**: `npm install`
-- **Start Command**: `npm start`
-- **Environment**: Node
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `python app.py`
+- **Environment**: Python 3.11
 
 ## Run Locally
 
 If you prefer to run this on your own computer:
 
-1. Install Node.js (v14 or higher)
+1. Install Python (3.11 or higher)
 
 2. Clone or download this project
 
 3. Install dependencies:
    ```bash
-   npm install
+   pip install -r requirements.txt
    ```
 
 4. Start the server:
    ```bash
-   npm start
+   python app.py
    ```
 
 5. Open your browser to `http://localhost:3000`
@@ -58,13 +58,13 @@ If you prefer to run this on your own computer:
 
 1. Open the application in your browser
 
-2. Click "Test AO3 Connection" to verify the server can reach AO3
+2. Enter your AO3 username and password
 
-3. Enter your AO3 username and password
+3. Optionally select a year to filter results
 
 4. Click "Scrape History"
 
-5. Your reading history will be displayed
+5. Your reading history will be displayed with statistics
 
 ## Security Notes
 
@@ -100,18 +100,19 @@ If you prefer to run this on your own computer:
 
 ## Technical Details
 
-- Built with Node.js and Express
-- Uses Cheerio for HTML parsing
-- Implements cookie-based session management
+- Built with Python and Flask
+- Uses BeautifulSoup for HTML parsing
+- Implements session-based cookie management
 - Includes retry logic and rate limiting protection
 - Respects AO3's robots.txt and rate limits
+- Scrapes all pages of reading history with year filtering
 
 ## Limitations
 
-- Only retrieves the first page of your reading history
 - Requires AO3 credentials (no guest access)
 - Subject to AO3's rate limiting and availability
 - Cannot work in browser-only environments
+- Includes automatic delays to avoid rate limiting
 
 ## License
 
