@@ -31,13 +31,22 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
             # Create session for cookie management
             session = requests.Session()
             session.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1'
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Cache-Control': 'max-age=0'
             })
+
+            # Small initial delay to appear more natural
+            initial_delay = random.uniform(1, 2)
+            print(f'Waiting {initial_delay:.1f} seconds before starting...')
+            delay(initial_delay)
 
             # Get login page to extract authenticity token
             print('Fetching login page...')
@@ -76,10 +85,34 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
 
             # Parse login page to get authenticity token
             login_soup = BeautifulSoup(login_page_response.text, 'html.parser')
+
+            # Debug: Check what page we actually got
+            page_title = login_soup.find('title')
+            if page_title:
+                print('Login page title:', page_title.get_text(strip=True))
+
+            # Look for authenticity token
             token_input = login_soup.find('input', {'name': 'authenticity_token'})
 
             if not token_input or not token_input.get('value'):
-                raise Exception('Could not find authenticity token')
+                # Try alternative selectors
+                token_input = login_soup.find('input', {'id': 'authenticity_token'})
+
+                if not token_input or not token_input.get('value'):
+                    # Check if we got a CAPTCHA or error page
+                    captcha = login_soup.find('div', class_='g-recaptcha')
+                    if captcha:
+                        raise Exception('AO3 is requiring CAPTCHA verification. This usually happens when too many requests are made. Please try again later or access AO3 directly in your browser first.')
+
+                    # Check for cloudflare or other blocking
+                    if 'cloudflare' in login_page_response.text.lower() or 'checking your browser' in login_page_response.text.lower():
+                        raise Exception('AO3 is using anti-bot protection. Please try again in a few minutes.')
+
+                    # Generic error with more info
+                    print('ERROR: Could not find authenticity token')
+                    print('Response length:', len(login_page_response.text))
+                    print('First 500 chars of response:', login_page_response.text[:500])
+                    raise Exception('Could not find authenticity token on login page. AO3 may be blocking automated access or their page structure has changed.')
 
             token = token_input['value']
             print('Authenticity token found')
