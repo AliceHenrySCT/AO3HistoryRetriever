@@ -91,31 +91,85 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
             if page_title:
                 print('Login page title:', page_title.get_text(strip=True))
 
-            # Look for authenticity token
+            # Debug: Look for the login form
+            login_form = login_soup.find('form', {'id': 'new_user'})
+            if not login_form:
+                login_form = login_soup.find('form', {'action': '/users/login'})
+
+            if login_form:
+                print('Login form found')
+            else:
+                print('WARNING: Login form not found!')
+                # Try to find any forms
+                all_forms = login_soup.find_all('form')
+                print(f'Found {len(all_forms)} form(s) on page')
+                for i, form in enumerate(all_forms):
+                    print(f'Form {i}: id={form.get("id")}, action={form.get("action")}')
+
+            # Look for authenticity token - try multiple methods
+            token_input = None
+            token = None
+
+            # Method 1: Look by name attribute
             token_input = login_soup.find('input', {'name': 'authenticity_token'})
+            if token_input and token_input.get('value'):
+                token = token_input['value']
+                print('Found token via name attribute')
 
-            if not token_input or not token_input.get('value'):
-                # Try alternative selectors
+            # Method 2: Look by id attribute
+            if not token:
                 token_input = login_soup.find('input', {'id': 'authenticity_token'})
+                if token_input and token_input.get('value'):
+                    token = token_input['value']
+                    print('Found token via id attribute')
 
-                if not token_input or not token_input.get('value'):
-                    # Check if we got a CAPTCHA or error page
-                    captcha = login_soup.find('div', class_='g-recaptcha')
-                    if captcha:
-                        raise Exception('AO3 is requiring CAPTCHA verification. This usually happens when too many requests are made. Please try again later or access AO3 directly in your browser first.')
+            # Method 3: Look for any input with "token" in the name
+            if not token:
+                all_inputs = login_soup.find_all('input')
+                for inp in all_inputs:
+                    input_name = inp.get('name', '').lower()
+                    if 'token' in input_name or 'csrf' in input_name:
+                        if inp.get('value'):
+                            token = inp['value']
+                            print(f'Found token via input name: {inp.get("name")}')
+                            break
 
-                    # Check for cloudflare or other blocking
-                    if 'cloudflare' in login_page_response.text.lower() or 'checking your browser' in login_page_response.text.lower():
-                        raise Exception('AO3 is using anti-bot protection. Please try again in a few minutes.')
+            if not token:
+                # Check if we got a CAPTCHA or error page
+                captcha = login_soup.find('div', class_='g-recaptcha')
+                if captcha:
+                    raise Exception('AO3 is requiring CAPTCHA verification. This usually happens when too many requests are made. Please try again later or access AO3 directly in your browser first.')
 
-                    # Generic error with more info
-                    print('ERROR: Could not find authenticity token')
-                    print('Response length:', len(login_page_response.text))
-                    print('First 500 chars of response:', login_page_response.text[:500])
-                    raise Exception('Could not find authenticity token on login page. AO3 may be blocking automated access or their page structure has changed.')
+                # Check for cloudflare or other blocking
+                if 'cloudflare' in login_page_response.text.lower() or 'checking your browser' in login_page_response.text.lower():
+                    raise Exception('AO3 is using anti-bot protection. Please try again in a few minutes.')
 
-            token = token_input['value']
-            print('Authenticity token found')
+                # Check if AO3 is in maintenance mode
+                if 'maintenance' in login_page_response.text.lower():
+                    raise Exception('AO3 appears to be in maintenance mode. Please try again later.')
+
+                # Generic error with detailed debugging
+                print('=' * 50)
+                print('ERROR: Could not find authenticity token')
+                print('Response URL:', login_page_response.url)
+                print('Response status:', login_page_response.status_code)
+                print('Response headers:', dict(login_page_response.headers))
+                print('Response length:', len(login_page_response.text))
+                print('First 1000 chars of response:')
+                print(login_page_response.text[:1000])
+                print('=' * 50)
+
+                # Save full response for debugging
+                try:
+                    with open('/tmp/ao3_login_page_debug.html', 'w', encoding='utf-8') as f:
+                        f.write(login_page_response.text)
+                    print('Full response saved to /tmp/ao3_login_page_debug.html')
+                except Exception as e:
+                    print(f'Could not save debug file: {e}')
+
+                raise Exception('Could not find authenticity token on login page. AO3 may be blocking automated access or their page structure has changed. Check logs for details.')
+
+            print('Authenticity token found:', token[:20] + '...' if len(token) > 20 else token)
 
             # Add random delay before logging in (2-4 seconds)
             login_delay = random.uniform(2, 4)

@@ -21,6 +21,21 @@ def health():
     return jsonify({'status': 'ok', 'timestamp': str(__import__('datetime').datetime.now().isoformat())})
 
 
+@app.route('/api/debug', methods=['GET'])
+def debug():
+    import os
+    debug_file = '/tmp/ao3_login_page_debug.html'
+    if os.path.exists(debug_file):
+        with open(debug_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return jsonify({
+            'found': True,
+            'content': content[:5000],
+            'length': len(content)
+        })
+    return jsonify({'found': False})
+
+
 def calculate_statistics(history_items):
     stats = {
         'totalFics': len(history_items),
