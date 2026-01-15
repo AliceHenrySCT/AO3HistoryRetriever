@@ -323,6 +323,19 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                 items_on_page = 0
                 last_item_on_page = None
 
+                # Debug: Save first item HTML on first page
+                if current_page == 1 and len(work_items) > 0:
+                    try:
+                        import os
+                        debug_dir = '/tmp/cc-agent'
+                        os.makedirs(debug_dir, exist_ok=True)
+                        debug_path = os.path.join(debug_dir, 'ao3_first_item_debug.html')
+                        with open(debug_path, 'w', encoding='utf-8') as f:
+                            f.write(str(work_items[0].prettify()))
+                        print(f'First item HTML saved to {debug_path}')
+                    except Exception as e:
+                        print(f'Could not save first item debug: {e}')
+
                 for item in work_items:
                     # Find the title link
                     title_element = item.find('h4', class_='heading')
@@ -389,32 +402,57 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                             # Extract last visited date
                             last_visited = None
                             date_text = None
+                            import re
 
-                            viewed_heading = item.find('h4', class_=['viewed', 'heading'])
-                            if not viewed_heading:
-                                viewed_heading = item.find('h4', class_='heading')
+                            # Try multiple approaches to find the date
 
+                            # Approach 1: Look for h4.viewed with "Last visited:"
+                            viewed_heading = item.find('h4', class_='viewed')
                             if viewed_heading:
                                 full_heading_text = viewed_heading.get_text()
-
                                 if 'Last visited:' in full_heading_text:
-                                    # Extract the date text
-                                    span = viewed_heading.find('span')
-                                    if span:
-                                        text_after_span = full_heading_text.replace(span.get_text(), '').strip()
-                                        # Extract date pattern
-                                        import re
-                                        date_match = re.search(r'(\d{1,2}\s+\w+\s+\d{4})', text_after_span)
-                                        if date_match:
-                                            date_text = date_match.group(1)
-                                            print(f'Found "Last visited" date for "{title}": "{date_text}"')
+                                    date_match = re.search(r'(\d{1,2}\s+\w+\s+\d{4})', full_heading_text)
+                                    if date_match:
+                                        date_text = date_match.group(1)
+
+                            # Approach 2: Look for span with datetime attribute
+                            if not date_text:
+                                datetime_span = item.find('span', {'datetime': True})
+                                if datetime_span:
+                                    date_text = datetime_span.get_text(strip=True)
+
+                            # Approach 3: Look in any element with "Last visited" text
+                            if not date_text:
+                                all_text = item.get_text()
+                                if 'Last visited:' in all_text:
+                                    # Find text after "Last visited:"
+                                    match = re.search(r'Last visited:\s*(\d{1,2}\s+\w+\s+\d{4})', all_text)
+                                    if match:
+                                        date_text = match.group(1)
+
+                            # Approach 4: Look for dd element with date class
+                            if not date_text:
+                                date_dd = item.find('dd', class_='date')
+                                if date_dd:
+                                    date_text = date_dd.get_text(strip=True)
 
                             if date_text:
+                                print(f'Found date text for "{title}": "{date_text}"')
                                 try:
-                                    last_visited = datetime.strptime(date_text, '%d %b %Y')
-                                    print(f'✓ Parsed date for "{title}": {last_visited.isoformat()} (Year: {last_visited.year})')
-                                except ValueError:
-                                    print(f'✗ Could not parse date from text: "{date_text}" for "{title}"')
+                                    # Try different date formats
+                                    formats = ['%d %b %Y', '%d %B %Y', '%Y-%m-%d', '%b %d, %Y', '%B %d, %Y']
+                                    for fmt in formats:
+                                        try:
+                                            last_visited = datetime.strptime(date_text, fmt)
+                                            print(f'✓ Parsed date for "{title}": {last_visited.isoformat()} (Year: {last_visited.year})')
+                                            break
+                                        except ValueError:
+                                            continue
+
+                                    if not last_visited:
+                                        print(f'✗ Could not parse date from text: "{date_text}" for "{title}"')
+                                except Exception as e:
+                                    print(f'✗ Error parsing date: {e}')
                             else:
                                 print(f'✗ No "Last visited" date found for "{title}"')
 
