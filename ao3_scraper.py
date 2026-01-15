@@ -30,17 +30,24 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
 
             # Create session for cookie management
             session = requests.Session()
+
+            # More realistic browser headers to avoid detection
             session.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
                 'Sec-Fetch-Dest': 'document',
                 'Sec-Fetch-Mode': 'navigate',
                 'Sec-Fetch-Site': 'none',
-                'Cache-Control': 'max-age=0'
+                'Sec-Fetch-User': '?1',
+                'Sec-Ch-Ua': '"Chromium";v="131", "Not_A Brand";v="24"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"',
+                'Cache-Control': 'max-age=0',
+                'DNT': '1'
             })
 
             # Small initial delay to appear more natural
@@ -83,8 +90,15 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                 print('Failed to fetch login page:', str(fetch_error))
                 raise
 
+            # Verify response is properly decoded (not compressed)
+            response_text = login_page_response.text
+            if response_text and ord(response_text[0]) > 127:
+                # Response appears to still be compressed
+                print('WARNING: Response appears to be compressed. Content-Encoding:', login_page_response.headers.get('Content-Encoding'))
+                raise Exception('Failed to decompress AO3 response. Try installing the brotli package.')
+
             # Parse login page to get authenticity token
-            login_soup = BeautifulSoup(login_page_response.text, 'html.parser')
+            login_soup = BeautifulSoup(response_text, 'html.parser')
 
             # Debug: Check what page we actually got
             page_title = login_soup.find('title')
@@ -161,9 +175,13 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
 
                 # Save full response for debugging
                 try:
-                    with open('/tmp/ao3_login_page_debug.html', 'w', encoding='utf-8') as f:
-                        f.write(login_page_response.text)
-                    print('Full response saved to /tmp/ao3_login_page_debug.html')
+                    import os
+                    debug_dir = '/tmp/cc-agent'
+                    os.makedirs(debug_dir, exist_ok=True)
+                    debug_path = os.path.join(debug_dir, 'ao3_login_page_debug.html')
+                    with open(debug_path, 'w', encoding='utf-8') as f:
+                        f.write(response_text)
+                    print(f'Full response saved to {debug_path}')
                 except Exception as e:
                     print(f'Could not save debug file: {e}')
 

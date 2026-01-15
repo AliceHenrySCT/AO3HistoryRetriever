@@ -24,7 +24,7 @@ def health():
 @app.route('/api/debug', methods=['GET'])
 def debug():
     import os
-    debug_file = '/tmp/ao3_login_page_debug.html'
+    debug_file = '/tmp/cc-agent/ao3_login_page_debug.html'
     if os.path.exists(debug_file):
         with open(debug_file, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -33,7 +33,7 @@ def debug():
             'content': content[:5000],
             'length': len(content)
         })
-    return jsonify({'found': False})
+    return jsonify({'found': False, 'message': 'Debug file not found'})
 
 
 def calculate_statistics(history_items):
