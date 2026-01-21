@@ -194,80 +194,33 @@
             margin-bottom: 15px;
         }
 
-        .stats-grid {
+        .stats-images {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .top-lists {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .top-list {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .top-list h4 {
-            color: #333;
-            font-size: 16px;
-            margin-bottom: 12px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 8px;
-        }
-
-        .top-list-item {
+        .stat-image-container {
             display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .top-list-item:last-child {
-            border-bottom: none;
-        }
-
-        .top-list-name {
-            color: #555;
-            font-size: 14px;
-            flex: 1;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            margin-right: 10px;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
-        .top-list-count {
-            color: #667eea;
-            font-weight: 600;
-            font-size: 14px;
+        .stat-image-container:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-image {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
         .history-list {
@@ -367,28 +320,18 @@
         <div class="results" id="results">
             <div class="statistics" id="statistics">
                 <h3>Reading Statistics</h3>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalFics">0</div>
-                        <div class="stat-label">Total Fics</div>
+                <div class="stats-images">
+                    <div class="stat-image-container">
+                        <img id="overallStatsImage" class="stat-image" alt="Overall Stats" style="display: none;">
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalWords">0</div>
-                        <div class="stat-label">Total Words</div>
+                    <div class="stat-image-container">
+                        <img id="shipsImage" class="stat-image" alt="Top Ships" style="display: none;">
                     </div>
-                </div>
-                <div class="top-lists">
-                    <div class="top-list">
-                        <h4>Top Ships</h4>
-                        <div id="topShips"></div>
+                    <div class="stat-image-container">
+                        <img id="tagsImage" class="stat-image" alt="Top Tags" style="display: none;">
                     </div>
-                    <div class="top-list">
-                        <h4>Top Tags</h4>
-                        <div id="topTags"></div>
-                    </div>
-                    <div class="top-list">
-                        <h4>Top Fandoms</h4>
-                        <div id="topFandoms"></div>
+                    <div class="stat-image-container">
+                        <img id="fandomsImage" class="stat-image" alt="Top Fandoms" style="display: none;">
                     </div>
                 </div>
             </div>
@@ -507,55 +450,32 @@
                 return;
             }
 
-            document.getElementById('totalFics').textContent = statistics.totalFics;
-            document.getElementById('totalWords').textContent = formatNumber(statistics.totalWords);
+            // Display stat images
+            if (statistics.imagePaths) {
+                const overallImg = document.getElementById('overallStatsImage');
+                const shipsImg = document.getElementById('shipsImage');
+                const tagsImg = document.getElementById('tagsImage');
+                const fandomsImg = document.getElementById('fandomsImage');
 
-            const topShipsDiv = document.getElementById('topShips');
-            topShipsDiv.innerHTML = '';
-            if (statistics.topShips.length === 0) {
-                topShipsDiv.innerHTML = '<div style="color: #999; font-size: 14px;">No ships found</div>';
-            } else {
-                statistics.topShips.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'top-list-item';
-                    div.innerHTML = `
-                        <div class="top-list-name" title="${escapeHtml(item.ship)}">${escapeHtml(item.ship)}</div>
-                        <div class="top-list-count">${item.count}</div>
-                    `;
-                    topShipsDiv.appendChild(div);
-                });
-            }
+                if (statistics.imagePaths.overall) {
+                    overallImg.src = statistics.imagePaths.overall + '?t=' + Date.now();
+                    overallImg.style.display = 'block';
+                }
 
-            const topTagsDiv = document.getElementById('topTags');
-            topTagsDiv.innerHTML = '';
-            if (statistics.topTags.length === 0) {
-                topTagsDiv.innerHTML = '<div style="color: #999; font-size: 14px;">No tags found</div>';
-            } else {
-                statistics.topTags.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'top-list-item';
-                    div.innerHTML = `
-                        <div class="top-list-name" title="${escapeHtml(item.tag)}">${escapeHtml(item.tag)}</div>
-                        <div class="top-list-count">${item.count}</div>
-                    `;
-                    topTagsDiv.appendChild(div);
-                });
-            }
+                if (statistics.imagePaths.ships) {
+                    shipsImg.src = statistics.imagePaths.ships + '?t=' + Date.now();
+                    shipsImg.style.display = 'block';
+                }
 
-            const topFandomsDiv = document.getElementById('topFandoms');
-            topFandomsDiv.innerHTML = '';
-            if (statistics.topFandoms.length === 0) {
-                topFandomsDiv.innerHTML = '<div style="color: #999; font-size: 14px;">No fandoms found</div>';
-            } else {
-                statistics.topFandoms.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'top-list-item';
-                    div.innerHTML = `
-                        <div class="top-list-name" title="${escapeHtml(item.fandom)}">${escapeHtml(item.fandom)}</div>
-                        <div class="top-list-count">${item.count}</div>
-                    `;
-                    topFandomsDiv.appendChild(div);
-                });
+                if (statistics.imagePaths.tags) {
+                    tagsImg.src = statistics.imagePaths.tags + '?t=' + Date.now();
+                    tagsImg.style.display = 'block';
+                }
+
+                if (statistics.imagePaths.fandoms) {
+                    fandomsImg.src = statistics.imagePaths.fandoms + '?t=' + Date.now();
+                    fandomsImg.style.display = 'block';
+                }
             }
 
             items.forEach((item) => {
