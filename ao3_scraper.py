@@ -360,9 +360,10 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                                 except ValueError:
                                     word_count = 0
 
-                            # Extract tags
-                            tags = []
-                            relationships = []
+                            # Extract tags (separated by type)
+                            tags = []  # Only freeform tags
+                            relationships = []  # Ship tags
+                            characters = []  # Character tags
 
                             relationship_elements = item.find_all('li', class_='relationships')
                             for rel_li in relationship_elements:
@@ -370,13 +371,12 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                                 if rel_tag:
                                     relationship = rel_tag.get_text(strip=True)
                                     relationships.append(relationship)
-                                    tags.append(relationship)
 
                             character_elements = item.find_all('li', class_='characters')
                             for char_li in character_elements:
                                 char_tag = char_li.find('a', class_='tag')
                                 if char_tag:
-                                    tags.append(char_tag.get_text(strip=True))
+                                    characters.append(char_tag.get_text(strip=True))
 
                             freeform_elements = item.find_all('li', class_='freeforms')
                             for free_li in freeform_elements:
@@ -463,6 +463,7 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                                     'url': f'https://archiveofourown.org{link}',
                                     'wordCount': word_count,
                                     'tags': tags,
+                                    'characters': characters,
                                     'relationships': relationships,
                                     'rating': rating,
                                     'fandoms': fandoms,
