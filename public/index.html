@@ -221,26 +221,27 @@
             display: block;
         }
 
-        .download-btn {
-            width: calc(100% - 20px);
-            margin: 10px;
-            padding: 8px 12px;
+        .download-all-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            display: none;
         }
 
-        .download-btn:hover {
+        .download-all-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .download-btn:active {
+        .download-all-btn:active {
             transform: translateY(0);
         }
 
@@ -344,21 +345,18 @@
                 <div class="stats-images">
                     <div class="stat-image-container" id="overallContainer" style="display: none;">
                         <img id="overallStatsImage" class="stat-image" alt="Overall Stats">
-                        <button class="download-btn" onclick="downloadImage('overall', 'overall_stats.png')">Download Overall Stats</button>
                     </div>
                     <div class="stat-image-container" id="shipsContainer" style="display: none;">
                         <img id="shipsImage" class="stat-image" alt="Top Ships">
-                        <button class="download-btn" onclick="downloadImage('ships', 'top_ships.png')">Download Top Ships</button>
                     </div>
                     <div class="stat-image-container" id="tagsContainer" style="display: none;">
                         <img id="tagsImage" class="stat-image" alt="Top Tags">
-                        <button class="download-btn" onclick="downloadImage('tags', 'top_tags.png')">Download Top Tags</button>
                     </div>
                     <div class="stat-image-container" id="fandomsContainer" style="display: none;">
                         <img id="fandomsImage" class="stat-image" alt="Top Fandoms">
-                        <button class="download-btn" onclick="downloadImage('fandoms', 'top_fandoms.png')">Download Top Fandoms</button>
                     </div>
                 </div>
+                <button class="download-all-btn" id="downloadAllBtn" onclick="downloadAllImages()">Download All Images</button>
             </div>
 
             <h2>Your Reading History</h2>
@@ -487,24 +485,34 @@
                 const tagsContainer = document.getElementById('tagsContainer');
                 const fandomsContainer = document.getElementById('fandomsContainer');
 
+                let hasImages = false;
+
                 if (statistics.imagePaths.overall) {
                     overallImg.src = statistics.imagePaths.overall + '?t=' + Date.now();
                     overallContainer.style.display = 'block';
+                    hasImages = true;
                 }
 
                 if (statistics.imagePaths.ships) {
                     shipsImg.src = statistics.imagePaths.ships + '?t=' + Date.now();
                     shipsContainer.style.display = 'block';
+                    hasImages = true;
                 }
 
                 if (statistics.imagePaths.tags) {
                     tagsImg.src = statistics.imagePaths.tags + '?t=' + Date.now();
                     tagsContainer.style.display = 'block';
+                    hasImages = true;
                 }
 
                 if (statistics.imagePaths.fandoms) {
                     fandomsImg.src = statistics.imagePaths.fandoms + '?t=' + Date.now();
                     fandomsContainer.style.display = 'block';
+                    hasImages = true;
+                }
+
+                if (hasImages) {
+                    document.getElementById('downloadAllBtn').style.display = 'block';
                 }
             }
 
@@ -529,25 +537,44 @@
             return div.innerHTML;
         }
 
-        async function downloadImage(imageType, filename) {
-            try {
-                const response = await fetch(`/api/stats-image/${imageType}`);
-                if (!response.ok) {
-                    throw new Error('Failed to download image');
-                }
+        async function downloadAllImages() {
+            const imageTypes = [
+                { type: 'overall', filename: 'overall_stats.png', container: 'overallContainer' },
+                { type: 'ships', filename: 'top_ships.png', container: 'shipsContainer' },
+                { type: 'tags', filename: 'top_tags.png', container: 'tagsContainer' },
+                { type: 'fandoms', filename: 'top_fandoms.png', container: 'fandomsContainer' }
+            ];
 
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+            const btn = document.getElementById('downloadAllBtn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Downloading...';
+            btn.disabled = true;
+
+            try {
+                for (const image of imageTypes) {
+                    const container = document.getElementById(image.container);
+                    if (container && container.style.display !== 'none') {
+                        const response = await fetch(`/api/stats-image/${image.type}`);
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = image.filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                    }
+                }
             } catch (err) {
-                console.error('Error downloading image:', err);
-                alert('Failed to download image. Please try again.');
+                console.error('Error downloading images:', err);
+                alert('Failed to download some images. Please try again.');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
             }
         }
     </script>
