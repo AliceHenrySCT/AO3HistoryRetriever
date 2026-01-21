@@ -202,14 +202,12 @@
         }
 
         .stat-image-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
             overflow: hidden;
             transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
         }
 
         .stat-image-container:hover {
@@ -221,6 +219,29 @@
             width: 100%;
             height: auto;
             display: block;
+        }
+
+        .download-btn {
+            width: calc(100% - 20px);
+            margin: 10px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
         }
 
         .history-list {
@@ -321,17 +342,21 @@
             <div class="statistics" id="statistics">
                 <h3>Reading Statistics</h3>
                 <div class="stats-images">
-                    <div class="stat-image-container">
-                        <img id="overallStatsImage" class="stat-image" alt="Overall Stats" style="display: none;">
+                    <div class="stat-image-container" id="overallContainer" style="display: none;">
+                        <img id="overallStatsImage" class="stat-image" alt="Overall Stats">
+                        <button class="download-btn" onclick="downloadImage('overall', 'overall_stats.png')">Download Overall Stats</button>
                     </div>
-                    <div class="stat-image-container">
-                        <img id="shipsImage" class="stat-image" alt="Top Ships" style="display: none;">
+                    <div class="stat-image-container" id="shipsContainer" style="display: none;">
+                        <img id="shipsImage" class="stat-image" alt="Top Ships">
+                        <button class="download-btn" onclick="downloadImage('ships', 'top_ships.png')">Download Top Ships</button>
                     </div>
-                    <div class="stat-image-container">
-                        <img id="tagsImage" class="stat-image" alt="Top Tags" style="display: none;">
+                    <div class="stat-image-container" id="tagsContainer" style="display: none;">
+                        <img id="tagsImage" class="stat-image" alt="Top Tags">
+                        <button class="download-btn" onclick="downloadImage('tags', 'top_tags.png')">Download Top Tags</button>
                     </div>
-                    <div class="stat-image-container">
-                        <img id="fandomsImage" class="stat-image" alt="Top Fandoms" style="display: none;">
+                    <div class="stat-image-container" id="fandomsContainer" style="display: none;">
+                        <img id="fandomsImage" class="stat-image" alt="Top Fandoms">
+                        <button class="download-btn" onclick="downloadImage('fandoms', 'top_fandoms.png')">Download Top Fandoms</button>
                     </div>
                 </div>
             </div>
@@ -457,24 +482,29 @@
                 const tagsImg = document.getElementById('tagsImage');
                 const fandomsImg = document.getElementById('fandomsImage');
 
+                const overallContainer = document.getElementById('overallContainer');
+                const shipsContainer = document.getElementById('shipsContainer');
+                const tagsContainer = document.getElementById('tagsContainer');
+                const fandomsContainer = document.getElementById('fandomsContainer');
+
                 if (statistics.imagePaths.overall) {
                     overallImg.src = statistics.imagePaths.overall + '?t=' + Date.now();
-                    overallImg.style.display = 'block';
+                    overallContainer.style.display = 'block';
                 }
 
                 if (statistics.imagePaths.ships) {
                     shipsImg.src = statistics.imagePaths.ships + '?t=' + Date.now();
-                    shipsImg.style.display = 'block';
+                    shipsContainer.style.display = 'block';
                 }
 
                 if (statistics.imagePaths.tags) {
                     tagsImg.src = statistics.imagePaths.tags + '?t=' + Date.now();
-                    tagsImg.style.display = 'block';
+                    tagsContainer.style.display = 'block';
                 }
 
                 if (statistics.imagePaths.fandoms) {
                     fandomsImg.src = statistics.imagePaths.fandoms + '?t=' + Date.now();
-                    fandomsImg.style.display = 'block';
+                    fandomsContainer.style.display = 'block';
                 }
             }
 
@@ -497,6 +527,28 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        async function downloadImage(imageType, filename) {
+            try {
+                const response = await fetch(`/api/stats-image/${imageType}`);
+                if (!response.ok) {
+                    throw new Error('Failed to download image');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (err) {
+                console.error('Error downloading image:', err);
+                alert('Failed to download image. Please try again.');
+            }
         }
     </script>
 </body>
