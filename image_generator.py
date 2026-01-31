@@ -63,8 +63,8 @@ def create_top_ships_image(ships, output_path):
     """Create an image showing top 5 ships"""
     width, height = 1080, 1920
 
-    # Create subtle gradient background (AO3 maroon to purple)
-    img = create_gradient(width, height, (115, 0, 10), (80, 40, 100))
+    # Create subtle gradient background (AO3 maroon shades)
+    img = create_gradient(width, height, (115, 0, 10), (74, 0, 6))
     draw = ImageDraw.Draw(img)
 
     # Header section with title
@@ -76,7 +76,7 @@ def create_top_ships_image(ships, output_path):
 
     # Subtitle
     subtitle_font = get_font(42)
-    draw_text_centered(draw, 190, "Your Most Read Relationships", subtitle_font, (220, 200, 220), width)
+    draw_text_centered(draw, 190, "Your Most Read Relationships", subtitle_font, (255, 220, 220), width)
 
     # Draw ships
     y_offset = 400
@@ -91,14 +91,14 @@ def create_top_ships_image(ships, output_path):
         card_top = y_offset - 30
         card_bottom = y_offset + 160
         draw.rectangle([60, card_top, width - 60, card_bottom],
-                      fill=(240, 235, 245), outline=(140, 80, 160), width=4)
+                      fill=(255, 245, 245), outline=(153, 0, 17), width=4)
 
         # Rank badge
         badge_size = 90
         badge_x = 100
         badge_y = y_offset + 10
         draw.ellipse([badge_x, badge_y, badge_x + badge_size, badge_y + badge_size],
-                    fill=(140, 80, 160))
+                    fill=(153, 0, 17))
 
         rank_font = get_font(48)
         rank_text = f"{i+1}"
@@ -112,7 +112,7 @@ def create_top_ships_image(ships, output_path):
         ship_y = y_offset + 20 if len(ship_lines) == 1 else y_offset
 
         for line in ship_lines[:2]:
-            draw.text((230, ship_y), line, font=item_font, fill=(40, 20, 50))
+            draw.text((230, ship_y), line, font=item_font, fill=(50, 0, 5))
             ship_y += 60
 
         # Count
@@ -120,7 +120,7 @@ def create_top_ships_image(ships, output_path):
         bbox = draw.textbbox((0, 0), count_text, font=count_font)
         count_width = bbox[2] - bbox[0]
         draw.text((width - count_width - 100, y_offset + 55),
-                 count_text, font=count_font, fill=(100, 60, 120))
+                 count_text, font=count_font, fill=(120, 0, 10))
 
         y_offset += 250
 
@@ -131,8 +131,8 @@ def create_top_tags_image(tags, output_path):
     """Create an image showing top 5 tags"""
     width, height = 1080, 1920
 
-    # Create subtle gradient background (deep purple to AO3 maroon)
-    img = create_gradient(width, height, (70, 30, 90), (115, 0, 10))
+    # Create subtle gradient background (dark maroon to AO3 maroon)
+    img = create_gradient(width, height, (90, 0, 8), (115, 0, 10))
     draw = ImageDraw.Draw(img)
 
     # Header section with title
@@ -144,7 +144,7 @@ def create_top_tags_image(tags, output_path):
 
     # Subtitle
     subtitle_font = get_font(42)
-    draw_text_centered(draw, 190, "Your Favorite Themes", subtitle_font, (220, 200, 220), width)
+    draw_text_centered(draw, 190, "Your Favorite Themes", subtitle_font, (255, 220, 220), width)
 
     # Draw tags
     y_offset = 400
@@ -159,14 +159,14 @@ def create_top_tags_image(tags, output_path):
         card_top = y_offset - 30
         card_bottom = y_offset + 160
         draw.rectangle([60, card_top, width - 60, card_bottom],
-                      fill=(240, 235, 245), outline=(140, 80, 160), width=4)
+                      fill=(255, 245, 245), outline=(153, 0, 17), width=4)
 
         # Rank badge
         badge_size = 90
         badge_x = 100
         badge_y = y_offset + 10
         draw.ellipse([badge_x, badge_y, badge_x + badge_size, badge_y + badge_size],
-                    fill=(140, 80, 160))
+                    fill=(153, 0, 17))
 
         rank_font = get_font(48)
         rank_text = f"{i+1}"
@@ -199,8 +199,8 @@ def create_top_fandoms_image(fandoms, output_path):
     """Create an image showing top 5 fandoms"""
     width, height = 1080, 1920
 
-    # Create subtle gradient background (purple to deep maroon)
-    img = create_gradient(width, height, (90, 50, 110), (90, 0, 8))
+    # Create subtle gradient background (burgundy to deep maroon)
+    img = create_gradient(width, height, (128, 0, 12), (90, 0, 8))
     draw = ImageDraw.Draw(img)
 
     # Header section with title
@@ -212,7 +212,7 @@ def create_top_fandoms_image(fandoms, output_path):
 
     # Subtitle
     subtitle_font = get_font(42)
-    draw_text_centered(draw, 190, "Your Favorite Universes", subtitle_font, (220, 200, 220), width)
+    draw_text_centered(draw, 190, "Your Favorite Universes", subtitle_font, (255, 220, 220), width)
 
     # Draw fandoms
     y_offset = 400
@@ -227,14 +227,14 @@ def create_top_fandoms_image(fandoms, output_path):
         card_top = y_offset - 30
         card_bottom = y_offset + 160
         draw.rectangle([60, card_top, width - 60, card_bottom],
-                      fill=(240, 235, 245), outline=(140, 80, 160), width=4)
+                      fill=(255, 245, 245), outline=(153, 0, 17), width=4)
 
         # Rank badge
         badge_size = 90
         badge_x = 100
         badge_y = y_offset + 10
         draw.ellipse([badge_x, badge_y, badge_x + badge_size, badge_y + badge_size],
-                    fill=(140, 80, 160))
+                    fill=(153, 0, 17))
 
         rank_font = get_font(48)
         rank_text = f"{i+1}"
@@ -267,8 +267,8 @@ def create_overall_stats_image(stats, output_path):
     """Create an image showing overall reading stats"""
     width, height = 1080, 1920
 
-    # Create subtle gradient background (AO3 maroon to purple)
-    img = create_gradient(width, height, (115, 0, 10), (90, 50, 110))
+    # Create subtle gradient background (AO3 maroon to dark burgundy)
+    img = create_gradient(width, height, (115, 0, 10), (128, 0, 12))
     draw = ImageDraw.Draw(img)
 
     # Header section with title
@@ -280,7 +280,7 @@ def create_overall_stats_image(stats, output_path):
 
     # Subtitle
     subtitle_font = get_font(42)
-    draw_text_centered(draw, 190, "Your AO3 Journey", subtitle_font, (220, 200, 220), width)
+    draw_text_centered(draw, 190, "Your AO3 Journey", subtitle_font, (255, 220, 220), width)
 
     # Stats section
     y_offset = 450
@@ -289,30 +289,30 @@ def create_overall_stats_image(stats, output_path):
 
     # Total fics card
     draw.rectangle([80, y_offset - 30, width - 80, y_offset + 220],
-                  fill=(240, 235, 245), outline=(140, 80, 160), width=4)
-    draw_text_centered(draw, y_offset + 20, "Total Fics Read", label_font, (100, 60, 120), width)
-    draw_text_centered(draw, y_offset + 100, f"{stats['totalFics']:,}", value_font, (40, 20, 50), width)
+                  fill=(255, 245, 245), outline=(153, 0, 17), width=4)
+    draw_text_centered(draw, y_offset + 20, "Total Fics Read", label_font, (120, 0, 10), width)
+    draw_text_centered(draw, y_offset + 100, f"{stats['totalFics']:,}", value_font, (50, 0, 5), width)
 
     y_offset += 350
 
     # Total words card
     draw.rectangle([80, y_offset - 30, width - 80, y_offset + 220],
-                  fill=(240, 235, 245), outline=(140, 80, 160), width=4)
-    draw_text_centered(draw, y_offset + 20, "Total Words Read", label_font, (100, 60, 120), width)
-    draw_text_centered(draw, y_offset + 100, f"{stats['totalWords']:,}", value_font, (40, 20, 50), width)
+                  fill=(255, 245, 245), outline=(153, 0, 17), width=4)
+    draw_text_centered(draw, y_offset + 20, "Total Words Read", label_font, (120, 0, 10), width)
+    draw_text_centered(draw, y_offset + 100, f"{stats['totalWords']:,}", value_font, (50, 0, 5), width)
 
     y_offset += 350
 
     # Longest fic card
     draw.rectangle([80, y_offset - 30, width - 80, y_offset + 340],
-                  fill=(240, 235, 245), outline=(140, 80, 160), width=4)
-    draw_text_centered(draw, y_offset + 20, "Longest Fic", label_font, (100, 60, 120), width)
+                  fill=(255, 245, 245), outline=(153, 0, 17), width=4)
+    draw_text_centered(draw, y_offset + 20, "Longest Fic", label_font, (120, 0, 10), width)
 
     longest_text = f"{stats['longestFic']['wordCount']:,}"
-    draw_text_centered(draw, y_offset + 100, longest_text, value_font, (40, 20, 50), width)
+    draw_text_centered(draw, y_offset + 100, longest_text, value_font, (50, 0, 5), width)
 
     words_font = get_font(40)
-    draw_text_centered(draw, y_offset + 200, "words", words_font, (100, 60, 120), width)
+    draw_text_centered(draw, y_offset + 200, "words", words_font, (120, 0, 10), width)
 
     # Longest fic title
     if stats['longestFic']['title']:
@@ -322,7 +322,7 @@ def create_overall_stats_image(stats, output_path):
 
         title_y = y_offset + 260
         for line in title_lines[:2]:
-            draw_text_centered(draw, title_y, line, title_font_small, (80, 50, 90), width)
+            draw_text_centered(draw, title_y, line, title_font_small, (90, 0, 8), width)
             title_y += 45
 
     img.save(output_path, 'PNG')
