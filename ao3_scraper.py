@@ -291,13 +291,58 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                 history_url = f'https://archiveofourown.org/users/{username}/readings?page={current_page}'
                 print(f'Fetching reading history page {current_page}...')
 
-                history_response = session.get(
-                    history_url,
-                    headers={'Referer': 'https://archiveofourown.org/'},
-                    timeout=60
-                )
+                # Retry logic for individual page fetches
+                page_fetch_attempts = 0
+                max_page_attempts = 3
+                history_response = None
 
-                print(f'History page {current_page} fetched successfully')
+                while page_fetch_attempts < max_page_attempts:
+                    try:
+                        history_response = session.get(
+                            history_url,
+                            headers={'Referer': 'https://archiveofourown.org/'},
+                            timeout=60
+                        )
+
+                        # Check for error status codes
+                        if history_response.status_code == 525:
+                            print(f'525 SSL Handshake Failed on page {current_page}')
+                            raise Exception('SSL connection failed (525)')
+
+                        if history_response.status_code == 429:
+                            retry_after = history_response.headers.get('retry-after', '60')
+                            print(f'Rate limit detected (429) on page {current_page}')
+                            raise Exception(f'Rate limited. Retry after {retry_after} seconds')
+
+                        if history_response.status_code == 503:
+                            print(f'503 Service Unavailable on page {current_page}')
+                            raise Exception('AO3 temporarily unavailable (503)')
+
+                        if history_response.status_code >= 400:
+                            print(f'Unexpected status code {history_response.status_code} on page {current_page}')
+                            raise Exception(f'HTTP error {history_response.status_code}')
+
+                        history_response.raise_for_status()
+                        print(f'History page {current_page} fetched successfully')
+                        break  # Success, exit retry loop
+
+                    except (requests.exceptions.SSLError, requests.exceptions.ConnectionError,
+                            requests.exceptions.Timeout, Exception) as fetch_error:
+                        page_fetch_attempts += 1
+                        print(f'Error fetching page {current_page} (attempt {page_fetch_attempts}/{max_page_attempts}): {str(fetch_error)}')
+
+                        if page_fetch_attempts >= max_page_attempts:
+                            print(f'Failed to fetch page {current_page} after {max_page_attempts} attempts')
+                            raise Exception(f'Could not fetch page {current_page} after {max_page_attempts} attempts: {str(fetch_error)}')
+
+                        # Wait before retrying with exponential backoff
+                        retry_wait = page_fetch_attempts * 5
+                        print(f'Waiting {retry_wait} seconds before retrying page {current_page}...')
+                        delay(retry_wait)
+
+                if not history_response:
+                    raise Exception(f'Failed to get response for page {current_page}')
+
                 soup = BeautifulSoup(history_response.text, 'html.parser')
 
                 # Debug: Log what we're seeing
