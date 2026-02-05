@@ -384,6 +384,26 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                                 if free_tag:
                                     tags.append(free_tag.get_text(strip=True))
 
+                            # Extract warnings
+                            warnings = []
+                            warning_elements = item.find_all('li', class_='warnings')
+                            for warn_li in warning_elements:
+                                warn_tag = warn_li.find('a', class_='tag')
+                                if warn_tag:
+                                    warning_text = warn_tag.get_text(strip=True)
+                                    warnings.append(warning_text)
+                                    tags.append(warning_text)
+
+                            # Extract categories
+                            categories = []
+                            category_elements = item.find_all('li', class_='categories')
+                            for cat_li in category_elements:
+                                cat_tag = cat_li.find('a', class_='tag')
+                                if cat_tag:
+                                    category_text = cat_tag.get_text(strip=True)
+                                    categories.append(category_text)
+                                    tags.append(category_text)
+
                             # Extract rating
                             rating_element = item.find('span', class_='rating')
                             if rating_element:
@@ -391,6 +411,10 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                                 rating = rating_text.get_text(strip=True) if rating_text else 'Not Rated'
                             else:
                                 rating = 'Not Rated'
+
+                            # Add rating to tags
+                            if rating and rating != 'Not Rated':
+                                tags.append(rating)
 
                             # Extract fandoms
                             fandoms = []
@@ -465,6 +489,8 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                                     'tags': tags,
                                     'characters': characters,
                                     'relationships': relationships,
+                                    'warnings': warnings,
+                                    'categories': categories,
                                     'rating': rating,
                                     'fandoms': fandoms,
                                     'lastVisited': last_visited.isoformat() if last_visited else None
