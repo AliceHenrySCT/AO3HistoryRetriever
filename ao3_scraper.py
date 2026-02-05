@@ -390,9 +390,7 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                             for warn_li in warning_elements:
                                 warn_tag = warn_li.find('a', class_='tag')
                                 if warn_tag:
-                                    warning_text = warn_tag.get_text(strip=True)
-                                    warnings.append(warning_text)
-                                    tags.append(warning_text)
+                                    warnings.append(warn_tag.get_text(strip=True))
 
                             # Extract categories
                             categories = []
@@ -400,9 +398,7 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                             for cat_li in category_elements:
                                 cat_tag = cat_li.find('a', class_='tag')
                                 if cat_tag:
-                                    category_text = cat_tag.get_text(strip=True)
-                                    categories.append(category_text)
-                                    tags.append(category_text)
+                                    categories.append(cat_tag.get_text(strip=True))
 
                             # Extract rating
                             rating_element = item.find('span', class_='rating')
@@ -411,10 +407,6 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                                 rating = rating_text.get_text(strip=True) if rating_text else 'Not Rated'
                             else:
                                 rating = 'Not Rated'
-
-                            # Add rating to tags
-                            if rating and rating != 'Not Rated':
-                                tags.append(rating)
 
                             # Extract fandoms
                             fandoms = []
