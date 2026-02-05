@@ -107,16 +107,6 @@ def calculate_statistics(history_items):
         for fandom in item.get('fandoms', []):
             fandom_counts[fandom] = fandom_counts.get(fandom, 0) + 1
 
-    print(f'Total unique tags found: {len(tag_counts)}')
-    print(f'Total unique ships found: {len(ship_counts)}')
-    print(f'Total unique fandoms found: {len(fandom_counts)}')
-    if len(tag_counts) > 0:
-        print(f'Sample tags: {list(tag_counts.keys())[:10]}')
-    if len(ship_counts) > 0:
-        print(f'Sample ships: {list(ship_counts.keys())[:10]}')
-    if len(fandom_counts) > 0:
-        print(f'Sample fandoms: {list(fandom_counts.keys())[:10]}')
-
     # Sort and get top 10
     stats['topTags'] = [
         {'tag': tag, 'count': count}
