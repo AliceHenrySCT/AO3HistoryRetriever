@@ -382,7 +382,11 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                             for free_li in freeform_elements:
                                 free_tag = free_li.find('a', class_='tag')
                                 if free_tag:
-                                    tags.append(free_tag.get_text(strip=True))
+                                    tag_text = free_tag.get_text(strip=True)
+                                    tags.append(tag_text)
+
+                            if current_page == 1 and items_on_page == 0 and len(tags) > 0:
+                                print(f'First item freeform tags: {tags}')
 
                             # Extract warnings
                             warnings = []

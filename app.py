@@ -101,6 +101,10 @@ def calculate_statistics(history_items):
         for tag in item.get('tags', []):
             tag_counts[tag] = tag_counts.get(tag, 0) + 1
 
+    print(f'Total unique tags found: {len(tag_counts)}')
+    if len(tag_counts) > 0:
+        print(f'Sample tags: {list(tag_counts.keys())[:10]}')
+
         for ship in item.get('relationships', []):
             ship_counts[ship] = ship_counts.get(ship, 0) + 1
 
@@ -140,17 +144,50 @@ def scrape_stream():
     print(f'Starting scrape for user: {username}{f" (Year: {year})" if year else ""}')
 
     def generate():
+        progress_queue = []
+
         def on_progress(progress_data):
-            yield f'event: progress\ndata: {json.dumps(progress_data)}\n\n'
+            progress_queue.append(progress_data)
 
         try:
-            history_items = scrape_ao3_history(
-                username,
-                password,
-                year if year else None,
-                retries=3,
-                on_progress=lambda data: None  # We'll handle progress differently
-            )
+            # Start scraping in a way that allows us to yield progress
+            import threading
+            import time
+
+            scrape_result = {'items': None, 'error': None}
+
+            def scrape_thread():
+                try:
+                    scrape_result['items'] = scrape_ao3_history(
+                        username,
+                        password,
+                        year if year else None,
+                        retries=3,
+                        on_progress=on_progress
+                    )
+                except Exception as e:
+                    scrape_result['error'] = e
+
+            thread = threading.Thread(target=scrape_thread)
+            thread.start()
+
+            # Yield progress updates while scraping
+            while thread.is_alive():
+                while progress_queue:
+                    progress_data = progress_queue.pop(0)
+                    yield f'event: progress\ndata: {json.dumps(progress_data)}\n\n'
+                time.sleep(0.5)
+
+            # Yield any remaining progress updates
+            while progress_queue:
+                progress_data = progress_queue.pop(0)
+                yield f'event: progress\ndata: {json.dumps(progress_data)}\n\n'
+
+            # Check for errors
+            if scrape_result['error']:
+                raise scrape_result['error']
+
+            history_items = scrape_result['items']
             print(f'Successfully scraped {len(history_items)} items')
 
             statistics = calculate_statistics(history_items)
