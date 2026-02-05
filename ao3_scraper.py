@@ -293,7 +293,7 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
 
                 # Retry logic for individual page fetches
                 page_fetch_attempts = 0
-                max_page_attempts = 3
+                max_page_attempts = 5  # Increased from 3
                 history_response = None
 
                 while page_fetch_attempts < max_page_attempts:
@@ -329,14 +329,32 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                     except (requests.exceptions.SSLError, requests.exceptions.ConnectionError,
                             requests.exceptions.Timeout, Exception) as fetch_error:
                         page_fetch_attempts += 1
-                        print(f'Error fetching page {current_page} (attempt {page_fetch_attempts}/{max_page_attempts}): {str(fetch_error)}')
+                        error_message = str(fetch_error)
+                        print(f'Error fetching page {current_page} (attempt {page_fetch_attempts}/{max_page_attempts}): {error_message}')
 
                         if page_fetch_attempts >= max_page_attempts:
                             print(f'Failed to fetch page {current_page} after {max_page_attempts} attempts')
-                            raise Exception(f'Could not fetch page {current_page} after {max_page_attempts} attempts: {str(fetch_error)}')
+                            raise Exception(f'Could not fetch page {current_page} after {max_page_attempts} attempts: {error_message}')
 
-                        # Wait before retrying with exponential backoff
-                        retry_wait = page_fetch_attempts * 5
+                        # Longer waits for SSL errors (525)
+                        if '525' in error_message or isinstance(fetch_error, requests.exceptions.SSLError):
+                            retry_wait = 30 + (page_fetch_attempts * 30)  # 60s, 90s, 120s, 150s
+                            print(f'SSL error detected - using extended cooldown period')
+
+                            # Recreate session adapter to reset SSL connection state
+                            if page_fetch_attempts >= 2:
+                                print('Recreating session adapter to reset connection...')
+                                retry_strategy = Retry(
+                                    total=3,
+                                    backoff_factor=1,
+                                    status_forcelist=[429, 500, 502, 503, 504],
+                                )
+                                adapter = HTTPAdapter(max_retries=retry_strategy)
+                                session.mount("https://", adapter)
+                                session.mount("http://", adapter)
+                        else:
+                            retry_wait = page_fetch_attempts * 10  # 10s, 20s, 30s, 40s
+
                         print(f'Waiting {retry_wait} seconds before retrying page {current_page}...')
                         delay(retry_wait)
 
@@ -598,15 +616,32 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                         has_more_pages = False
 
                     if has_more_pages:
-                        # Add random delay between 2-5 seconds
-                        random_delay = random.uniform(2, 5)
+                        # Progressive delay that increases with page count
+                        # Pages 1-10: 3-6 seconds
+                        # Pages 11-20: 5-8 seconds
+                        # Pages 21-30: 8-12 seconds
+                        # Pages 31+: 12-18 seconds
+                        if current_page <= 10:
+                            random_delay = random.uniform(3, 6)
+                        elif current_page <= 20:
+                            random_delay = random.uniform(5, 8)
+                        elif current_page <= 30:
+                            random_delay = random.uniform(8, 12)
+                        else:
+                            random_delay = random.uniform(12, 18)
+
                         print(f'Waiting {random_delay:.1f} seconds before next page...')
                         delay(random_delay)
 
-                        # Add 1 minute delay after every 5th page
-                        if current_page % 5 == 0:
-                            print(f'Completed {current_page} pages, waiting 60 seconds to avoid rate limiting...')
-                            delay(60)
+                        # Extended cooldown every 10 pages to avoid detection
+                        if current_page % 10 == 0:
+                            cooldown_time = 90  # 1.5 minutes
+                            print(f'Completed {current_page} pages, extended cooldown of {cooldown_time} seconds to avoid rate limiting...')
+                            delay(cooldown_time)
+                        # Additional brief pause every 5 pages
+                        elif current_page % 5 == 0:
+                            print(f'Completed {current_page} pages, waiting 30 seconds...')
+                            delay(30)
 
                         current_page += 1
 
