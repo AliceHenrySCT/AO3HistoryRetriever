@@ -107,19 +107,23 @@ def create_top_ships_image(ships, output_path):
         draw.text((badge_x + (badge_size - rank_width) // 2, badge_y + 18),
                  rank_text, font=rank_font, fill=(255, 255, 255))
 
-        # Ship name (wrapped if needed)
-        ship_lines = wrap_text(ship_name, item_font, width - 360, draw)
+        # Count (calculate position first)
+        count_text = f"{count} fics"
+        bbox = draw.textbbox((0, 0), count_text, font=count_font)
+        count_width = bbox[2] - bbox[0]
+        count_x = width - count_width - 100
+
+        # Ship name (wrapped with proper width to avoid count)
+        max_text_width = count_x - 250
+        ship_lines = wrap_text(ship_name, item_font, max_text_width, draw)
         ship_y = y_offset + 20 if len(ship_lines) == 1 else y_offset
 
         for line in ship_lines[:2]:
             draw.text((230, ship_y), line, font=item_font, fill=(50, 0, 5))
             ship_y += 60
 
-        # Count
-        count_text = f"{count} fics"
-        bbox = draw.textbbox((0, 0), count_text, font=count_font)
-        count_width = bbox[2] - bbox[0]
-        draw.text((width - count_width - 100, y_offset + 55),
+        # Draw count
+        draw.text((count_x, y_offset + 55),
                  count_text, font=count_font, fill=(120, 0, 10))
 
         y_offset += 250
@@ -175,20 +179,24 @@ def create_top_tags_image(tags, output_path):
         draw.text((badge_x + (badge_size - rank_width) // 2, badge_y + 18),
                  rank_text, font=rank_font, fill=(255, 255, 255))
 
-        # Tag name (wrapped if needed)
-        tag_lines = wrap_text(tag_name, item_font, width - 360, draw)
-        tag_y = y_offset + 20 if len(tag_lines) == 1 else y_offset
-
-        for line in tag_lines[:2]:
-            draw.text((230, tag_y), line, font=item_font, fill=(40, 20, 50))
-            tag_y += 60
-
-        # Count
+        # Count (calculate position first)
         count_text = f"{count} fics"
         bbox = draw.textbbox((0, 0), count_text, font=count_font)
         count_width = bbox[2] - bbox[0]
-        draw.text((width - count_width - 100, y_offset + 55),
-                 count_text, font=count_font, fill=(100, 60, 120))
+        count_x = width - count_width - 100
+
+        # Tag name (wrapped with proper width to avoid count)
+        max_text_width = count_x - 250
+        tag_lines = wrap_text(tag_name, item_font, max_text_width, draw)
+        tag_y = y_offset + 20 if len(tag_lines) == 1 else y_offset
+
+        for line in tag_lines[:2]:
+            draw.text((230, tag_y), line, font=item_font, fill=(50, 0, 5))
+            tag_y += 60
+
+        # Draw count
+        draw.text((count_x, y_offset + 55),
+                 count_text, font=count_font, fill=(120, 0, 10))
 
         y_offset += 250
 
@@ -243,20 +251,24 @@ def create_top_fandoms_image(fandoms, output_path):
         draw.text((badge_x + (badge_size - rank_width) // 2, badge_y + 18),
                  rank_text, font=rank_font, fill=(255, 255, 255))
 
-        # Fandom name (wrapped if needed)
-        fandom_lines = wrap_text(fandom_name, item_font, width - 360, draw)
-        fandom_y = y_offset + 20 if len(fandom_lines) == 1 else y_offset
-
-        for line in fandom_lines[:2]:
-            draw.text((230, fandom_y), line, font=item_font, fill=(40, 20, 50))
-            fandom_y += 60
-
-        # Count
+        # Count (calculate position first)
         count_text = f"{count} fics"
         bbox = draw.textbbox((0, 0), count_text, font=count_font)
         count_width = bbox[2] - bbox[0]
-        draw.text((width - count_width - 100, y_offset + 55),
-                 count_text, font=count_font, fill=(100, 60, 120))
+        count_x = width - count_width - 100
+
+        # Fandom name (wrapped with proper width to avoid count)
+        max_text_width = count_x - 250
+        fandom_lines = wrap_text(fandom_name, item_font, max_text_width, draw)
+        fandom_y = y_offset + 20 if len(fandom_lines) == 1 else y_offset
+
+        for line in fandom_lines[:2]:
+            draw.text((230, fandom_y), line, font=item_font, fill=(50, 0, 5))
+            fandom_y += 60
+
+        # Draw count
+        draw.text((count_x, y_offset + 55),
+                 count_text, font=count_font, fill=(120, 0, 10))
 
         y_offset += 250
 
