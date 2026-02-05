@@ -31,12 +31,26 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
             # Create session for cookie management
             session = requests.Session()
 
+            # Configure adapter with retry strategy for SSL errors
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
+
+            # Create retry strategy
+            retry_strategy = Retry(
+                total=3,
+                backoff_factor=1,
+                status_forcelist=[429, 500, 502, 503, 504],
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("https://", adapter)
+            session.mount("http://", adapter)
+
             # More realistic browser headers to avoid detection
             session.headers.update({
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
+                'Accept-Encoding': 'gzip, deflate, br',
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
                 'Sec-Fetch-Dest': 'document',
@@ -79,6 +93,10 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
                 if login_page_response.status_code == 503:
                     print('503 Service Unavailable - AO3 may be down')
                     raise Exception('AO3 is temporarily unavailable (503). Please try again later.')
+
+                if login_page_response.status_code == 525:
+                    print('525 SSL Handshake Failed')
+                    raise Exception('SSL connection failed (525). This may be due to network issues or AO3\'s security settings. Try again in a few minutes or check your internet connection.')
 
                 if login_page_response.status_code >= 400:
                     print(f'Unexpected status code: {login_page_response.status_code}')
@@ -567,13 +585,16 @@ def scrape_ao3_history(username, password, year=None, retries=3, on_progress=Non
             # Check if this is a retryable error
             is_retryable = isinstance(error, (
                 requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout
+                requests.exceptions.Timeout,
+                requests.exceptions.SSLError
             ))
 
             # If it's the last attempt or not retryable, raise appropriate error
             if attempt == retries or not is_retryable:
                 if 'Invalid username or password' in str(error):
                     raise error
+                if isinstance(error, requests.exceptions.SSLError):
+                    raise Exception('SSL connection error. This may be due to network issues, firewall settings, or AO3\'s security configuration. Try again in a few minutes or check your internet connection.')
                 if isinstance(error, requests.exceptions.Timeout):
                     raise Exception('Request timed out. AO3 may be slow or unavailable. Try again in a few minutes.')
                 if isinstance(error, requests.exceptions.ConnectionError):
